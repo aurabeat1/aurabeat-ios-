@@ -5,14 +5,21 @@ Run with:
     uvicorn main:app --reload --port 3000
 """
 
+import base64
+import html
 import hmac
 import hashlib
 import json
 import os
 import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from typing import Optional
 
+from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
+from cryptography.hazmat.primitives.ciphers import Cipher, modes
+from cryptography.hazmat.primitives import padding
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.responses import Response, JSONResponse
 from bitchord_addon_auth import BitChordAuth
@@ -162,21 +169,94 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
     return Response(content=b"DEMO_AUDIO_PAYLOAD", media_type="audio/flac")
 
 
+RECENT_TRACKS = {}
+
+def decrypt_jiosaavn_url(enc_url: str) -> str:
+    if not enc_url:
+        return ""
+    try:
+        raw_data = base64.b64decode(enc_url)
+        cipher = Cipher(TripleDES(b"38346591" * 3), modes.ECB())
+        decryptor = cipher.decryptor()
+        decrypted = decryptor.update(raw_data) + decryptor.finalize()
+        unpadder = padding.PKCS7(64).unpadder()
+        unpadded = unpadder.update(decrypted) + unpadder.finalize()
+        decrypted_url = unpadded.decode("utf-8")
+        return decrypted_url.replace("_96.", "_320.").replace("_160.", "_320.")
+    except Exception:
+        return ""
+
+def search_jiosaavn(query: str):
+    url = f"https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=android&q={urllib.parse.quote(query)}&p=1&n=15"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            data = json.loads(r.read())
+    except Exception as e:
+        print(f"JioSaavn search error: {e}")
+        return []
+
+    songs = []
+    for s in data.get("results", []):
+        more = s.get("more_info", {})
+        enc_url = more.get("encrypted_media_url", "")
+        stream_url = decrypt_jiosaavn_url(enc_url)
+        title = html.unescape(s.get("title", ""))
+        artists_list = more.get("artistMap", {}).get("primary_artists", [])
+        artist_name = html.unescape(artists_list[0].get("name", "")) if artists_list else ""
+        album_name = html.unescape(more.get("album", ""))
+        image = s.get("image", "").replace("150x150", "500x500")
+        try:
+            duration = float(more.get("duration", 0) or 0)
+        except Exception:
+            duration = 0.0
+
+        track = {
+            "id": s.get("id", ""),
+            "title": title,
+            "artist": artist_name,
+            "album": album_name,
+            "duration": duration,
+            "format": "aac",
+            "audioQuality": "320kbps AAC",
+            "bitrate": 320,
+            "artworkURL": image,
+            "streamURL": stream_url
+        }
+        songs.append(track)
+        RECENT_TRACKS[track["id"]] = track
+    return songs
+
+
 # ── Protected routes ──
 
 @app.get("/search")
 def search(q: str = "", quality: str = "lossless", claims=Depends(require_bitchord)):
-    query = q.lower().strip()
-    matched = [
-        t for t in TRACK_CATALOG
-        if not query or query in t["title"].lower() or query in t["artist"].lower() or query in t["album"].lower()
-    ]
-    # Always return tracks (fallback to all tracks if query didn't match)
-    return {"tracks": matched if matched else TRACK_CATALOG}
+    query = q.strip()
+    if query:
+        real_songs = search_jiosaavn(query)
+        if real_songs:
+            return {"tracks": real_songs}
+
+    # Fallback to local sample catalog
+    return {"tracks": TRACK_CATALOG}
 
 
 @app.get("/stream/{track_id}")
 def stream(track_id: str, request: Request, quality: str = "lossless", claims=Depends(require_bitchord)):
+    if track_id in RECENT_TRACKS:
+        track = RECENT_TRACKS[track_id]
+        return {
+            "url": track.get("streamURL") or signed_media_url(request, track["id"]),
+            "format": track.get("format", "aac"),
+            "audioQuality": track.get("audioQuality", "320kbps AAC"),
+            "bitrate": track.get("bitrate", 320),
+            "sampleRate": track.get("sampleRate"),
+            "bitDepth": track.get("bitDepth"),
+            "audioMode": track.get("audioMode"),
+            "atmos": track.get("atmos")
+        }
+
     track = next((t for t in TRACK_CATALOG if t["id"] == track_id), TRACK_CATALOG[0])
     media_url = signed_media_url(request, track["id"])
     return {
