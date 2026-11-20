@@ -106,6 +106,10 @@ async def log_requests(request: Request, call_next):
 def get_logs():
     return {"count": len(REQUEST_LOGS), "logs": list(reversed(REQUEST_LOGS))}
 
+@app.options("/{full_path:path}")
+def handle_options():
+    return Response(status_code=200, headers={"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "*"})
+
 # Load manifest
 manifest_path = BASE_DIR / "manifest.json"
 with open(manifest_path, "r", encoding="utf-8") as f:
