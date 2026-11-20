@@ -652,7 +652,7 @@ def get_manifest():
 
 @app.get("/media/{track_id}")
 @app.get("/media/{track_id}/")
-def get_media(track_id: str, exp: str = "", sig: str = ""):
+def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
     # Media URLs expire in 15-30 min and don't need BitChord headers (Task 4)
     if not media_allowed(track_id, exp, sig):
         raise HTTPException(status_code=403, detail="Expired or invalid media URL")
@@ -698,21 +698,37 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
         if cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
 
-        # Trigger transcode in background if not already started
+        # Trigger transcode immediately in background thread
         threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, tier), daemon=True).start()
 
-        # Fast polling: up to 0.5s for immediate responsiveness
+        # Poll up to 4.5 seconds (AuraBeat firstBytesTimeout is 6.0s)
+        # Dedicated transcode takes ~1.5-2.5s with local download, returning FileResponse as soon as ready
         t0 = time.time()
-        while time.time() - t0 < 0.5:
+        while time.time() - t0 < 4.5:
             if cached_file.exists() and cached_file.stat().st_size > 1000:
                 return FileResponse(cached_file, media_type=media_type)
-            time.sleep(0.02)
+            time.sleep(0.04)
 
         if cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
 
-        # Immediate smooth fallback: redirect so player starts audio instantly in <0.5s without stalling!
-        return RedirectResponse(url=raw_url, status_code=307)
+        # HTTP 206 Partial Content proxy fallback (NEVER 307 redirect!)
+        # AuraBeat's firstBytesArrive checks (200..<300).contains(status); 307 causes stream failure and retry loops
+        range_header = request.headers.get("range", "bytes=0-16383")
+        try:
+            proxy_req = urllib.request.Request(raw_url, headers={"Range": range_header, "User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(proxy_req, timeout=5) as p_resp:
+                content = p_resp.read()
+                headers = {
+                    "Content-Type": media_type,
+                    "Accept-Ranges": "bytes",
+                    "Content-Range": p_resp.headers.get("Content-Range", f"bytes 0-{len(content)-1}/*"),
+                    "Content-Length": str(len(content)),
+                    "Access-Control-Allow-Origin": "*",
+                }
+                return Response(content=content, status_code=206, headers=headers)
+        except Exception as e:
+            print(f"Proxy fallback error for {clean_id}: {e}")
 
     # 3. Fallback to fixture or 404
     hires_fix = FIXTURES_DIR / "hires.flac"
@@ -917,15 +933,6 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             }
             songs.append(track)
             RECENT_TRACKS[track["id"]] = track
-
-    # Pre-transcode only the #1 top candidate in background so CPU is never starved
-    if songs:
-        top = songs[0]
-        c_id = top["id"].replace("atmos_", "").replace("hires_", "")
-        c_raw = top.get("rawStreamURL")
-        c_tier = "atmos" if top["id"].startswith("atmos_") else "hires"
-        if c_raw:
-            threading.Thread(target=transcode_to_quality, args=(c_raw, c_id, c_tier), daemon=True).start()
 
     return songs
 
