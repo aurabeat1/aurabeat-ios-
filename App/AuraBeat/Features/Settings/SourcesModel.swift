@@ -20,11 +20,13 @@ final class SourcesModel {
     }
 
     /// Addons first, in the user's drag order: they are the only rows whose order is theirs.
-    var addons: [SourceConfig] { registry.configs.filter { $0.kind.isUserAdded } }
+    var addons: [SourceConfig] {
+        registry.configs.filter { $0.kind.isUserAdded && $0.id != SourceRegistry.defaultBackgroundAddonId }
+    }
 
     /// Everything else, ranked by kind, which is fixed and not something a drag should argue with.
     var fixed: [SourceConfig] {
-        registry.configs.filter { !$0.kind.isUserAdded }.sorted { $0.kind.rank < $1.kind.rank }
+        registry.configs.filter { !$0.kind.isUserAdded && $0.id != SourceRegistry.defaultBackgroundAddonId }.sorted { $0.kind.rank < $1.kind.rank }
     }
 
     /// Probes every server-backed source so an addon gets a reachability line (the only feedback
@@ -108,6 +110,9 @@ final class SourcesModel {
     func moveAddons(from source: IndexSet, to destination: Int) {
         var ids = addons.map(\.id)
         ids.move(fromOffsets: source, toOffset: destination)
+        if registry.configs.contains(where: { $0.id == SourceRegistry.defaultBackgroundAddonId }) {
+            ids.insert(SourceRegistry.defaultBackgroundAddonId, at: 0)
+        }
         registry.reorderAddons(ids)
     }
 }

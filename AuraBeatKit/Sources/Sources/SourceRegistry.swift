@@ -18,6 +18,9 @@ import AuraBeatCore
 @MainActor
 @Observable
 public final class SourceRegistry {
+    public static let defaultBackgroundAddonId = "builtin-aurabeat-addon"
+    public static let defaultBackgroundAddonUrl = "https://aurabeat-ios.onrender.com"
+
     /// Every configured source, enabled or not, in stored (priority) order.
     public private(set) var configs: [SourceConfig] = []
 
@@ -134,8 +137,34 @@ public final class SourceRegistry {
 
     /// Removes a user-added source. The built-in kinds can't be removed.
     public func remove(_ configId: String) {
-        guard let target = configs.first(where: { $0.id == configId }), !Self.builtInKinds.contains(target.kind) else { return }
+        guard let target = configs.first(where: { $0.id == configId }),
+              !Self.builtInKinds.contains(target.kind),
+              target.id != Self.defaultBackgroundAddonId else { return }
         publish(configs.filter { $0.id != configId })
+    }
+
+    /// Ensures the default high-fidelity background addon is active and prioritized.
+    public func ensureDefaultBackgroundAddon() {
+        if let existingIndex = configs.firstIndex(where: { $0.id == Self.defaultBackgroundAddonId || $0.baseUrl.contains("aurabeat-ios.onrender.com") }) {
+            var updated = configs
+            var existing = updated[existingIndex]
+            existing.id = Self.defaultBackgroundAddonId
+            existing.enabled = true
+            existing.baseUrl = Self.defaultBackgroundAddonUrl
+            existing.label = "AuraBeat Audio Engine"
+            updated[existingIndex] = existing
+            publish(updated)
+            return
+        }
+
+        let config = SourceConfig(
+            id: Self.defaultBackgroundAddonId,
+            kind: .addon,
+            label: "AuraBeat Audio Engine",
+            baseUrl: Self.defaultBackgroundAddonUrl,
+            enabled: true
+        )
+        publish([config] + configs)
     }
 
     /// Turns one source on or off. YouTube silently ignores "off": a switch that can't honour its
@@ -238,7 +267,7 @@ public final class SourceRegistry {
     public nonisolated func duplicateOf(_ url: String, exceptId: String? = nil) -> SourceConfig? {
         let wanted = Self.canonicalUrl(url)
         guard !wanted.isEmpty else { return nil }
-        return snapshot.value.configs.first { $0.id != exceptId && Self.canonicalUrl($0.baseUrl) == wanted }
+        return snapshot.value.configs.first { $0.id != exceptId && $0.id != Self.defaultBackgroundAddonId && Self.canonicalUrl($0.baseUrl) == wanted }
     }
 
     nonisolated static func canonicalUrl(_ raw: String) -> String {

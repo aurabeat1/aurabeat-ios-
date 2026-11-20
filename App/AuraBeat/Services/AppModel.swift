@@ -277,6 +277,7 @@ final class AppModel {
             youTubeSearch: InnerTubeSongSearch(repository: repository),
             youTubeStreams: youTubeStreams
         ))
+        sourceRegistry.ensureDefaultBackgroundAddon()
         sourceResolver = SourceResolver(registry: sourceRegistry)
 
         // Tests share no figures through the real defaults.
