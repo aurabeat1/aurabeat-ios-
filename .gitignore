@@ -38,3 +38,10 @@ CLAUDE.md
 opencode.json
 .codex/
 .cursor/
+
+# Node.js
+node_modules/
+.env
+.env.local
+npm-debug.log*
+
