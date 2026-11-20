@@ -60,7 +60,9 @@ public final class PlaybackQualityCeiling: Observable, @unchecked Sendable {
     /// is read live (observe the monitor itself for connection changes).
     public var effectiveQuality: AudioQuality {
         registrar.access(self, keyPath: \.effectiveQuality)
-        return Self.quality(on: network.status, wifi: lock.withLock { wifi }, cellular: lock.withLock { cellular })
+        let wifi = lock.withLock { self.wifi }
+        let cellular = lock.withLock { self.cellular }
+        return Self.quality(on: network.status, wifi: wifi, cellular: cellular)
     }
 
     /// Whether the cellular ceiling is the one in force.
@@ -76,8 +78,10 @@ public final class PlaybackQualityCeiling: Observable, @unchecked Sendable {
     /// `DirectSourceGate.isActive`): a party seeks every member to the host's position and expects
     /// the track to be there, and a start held for the sources would leave this phone behind.
     public var currentRequest: StreamRequest {
-        let (directSource, inParty) = lock.withLock { (directSource, inParty) }
-        return .playback(effectiveQuality, directSource: inParty ? .off : directSource)
+        let (source, party): (DirectSourceStream, Bool) = lock.withLock {
+            (self.directSource, self.inParty)
+        }
+        return .playback(effectiveQuality, directSource: party ? .off : source)
     }
 
     /// Whether this device is in a Listen Together party; the app keeps it in step.
@@ -110,7 +114,7 @@ public final class PlaybackQualityCeiling: Observable, @unchecked Sendable {
     public func follow(_ settings: AppSettings) {
         withObservationTracking {
             setCeilings(wifi: settings.audioQualityWifi, cellular: settings.audioQualityCellular)
-            lock.withLock { directSource = settings.directSourceStream }
+            lock.withLock { self.directSource = settings.directSourceStream }
         } onChange: { [weak self, weak settings] in
             // onChange fires before the new value is stored; read it once the write has landed.
             Task { @MainActor in
