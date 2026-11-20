@@ -53,7 +53,58 @@ AUTH_MODE = os.getenv("BITCHORD_AUTH_MODE", "log")
 # Module scope verifier instance
 bitchord = BitChordAuth(hosts=hosts)
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="AuraBeat Addon Server")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+REQUEST_LOGS = []
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        duration = round((time.time() - start) * 1000, 1)
+        REQUEST_LOGS.append({
+            "time": time.strftime("%H:%M:%S"),
+            "method": request.method,
+            "path": request.url.path,
+            "query": str(request.url.query),
+            "status": 500,
+            "client": request.client.host if request.client else "unknown",
+            "ua": request.headers.get("user-agent", ""),
+            "error": str(exc),
+            "duration_ms": duration
+        })
+        raise exc
+
+    duration = round((time.time() - start) * 1000, 1)
+    REQUEST_LOGS.append({
+        "time": time.strftime("%H:%M:%S"),
+        "method": request.method,
+        "path": request.url.path,
+        "query": str(request.url.query),
+        "status": response.status_code,
+        "client": request.client.host if request.client else "unknown",
+        "ua": request.headers.get("user-agent", ""),
+        "duration_ms": duration
+    })
+    if len(REQUEST_LOGS) > 100:
+        REQUEST_LOGS.pop(0)
+    return response
+
+@app.get("/logs")
+def get_logs():
+    return {"count": len(REQUEST_LOGS), "logs": list(reversed(REQUEST_LOGS))}
 
 # Load manifest
 manifest_path = BASE_DIR / "manifest.json"
@@ -270,6 +321,7 @@ def get_root():
     }
 
 
+@app.get("/manifest")
 @app.get("/manifest.json")
 def get_manifest():
     # Stays public (Task 1)
@@ -440,6 +492,7 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
 # ── Protected routes ──
 
 @app.get("/search")
+@app.get("/search/")
 def search(q: str = "", quality: str = "lossless", atmos: str = "auto", claims=Depends(require_bitchord)):
     query = q.strip()
     if query and query.lower() not in ["catalog", "demo", "sample"]:
@@ -452,6 +505,7 @@ def search(q: str = "", quality: str = "lossless", atmos: str = "auto", claims=D
 
 
 @app.get("/stream/{track_id}")
+@app.get("/stream/{track_id}/")
 def stream(
     track_id: str,
     request: Request,
