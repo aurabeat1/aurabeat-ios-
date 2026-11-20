@@ -1,0 +1,850 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BC000000000000000000000E /* AuraBeatKit in Frameworks */ = {isa = PBXBuildFile; productRef = BC000000000000000000000C /* AuraBeatKit */; };
+		BC0000000000000000000010 /* AuraBeatWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BC0000000000000000000006 /* AuraBeatWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BC0000000000000000000041 /* AuraBeatShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BC0000000000000000000040 /* AuraBeatShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BC000000000000000000001E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BC0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BC0000000000000000000013;
+			remoteInfo = AuraBeatWidgetExtension;
+		};
+		BC0000000000000000000020 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BC0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BC0000000000000000000011;
+			remoteInfo = AuraBeat;
+		};
+		BC0000000000000000000042 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BC0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BC0000000000000000000043;
+			remoteInfo = AuraBeatShareExtension;
+		};
+		BC0000000000000000000052 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BC0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BC0000000000000000000011;
+			remoteInfo = AuraBeat;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BC0000000000000000000017 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BC0000000000000000000010 /* AuraBeatWidgetExtension.appex in Embed Foundation Extensions */,
+				BC0000000000000000000041 /* AuraBeatShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		BC0000000000000000000004 /* AuraBeat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AuraBeat.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BC0000000000000000000005 /* AuraBeatTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AuraBeatTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BC0000000000000000000006 /* AuraBeatWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AuraBeatWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BC0000000000000000000030 /* AuraBeat-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "AuraBeat-Info.plist"; sourceTree = "<group>"; };
+		BC0000000000000000000031 /* AuraBeatWidget-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "AuraBeatWidget-Info.plist"; sourceTree = "<group>"; };
+		BC0000000000000000000032 /* AuraBeat.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AuraBeat.entitlements; sourceTree = "<group>"; };
+		BC0000000000000000000033 /* AuraBeatWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AuraBeatWidget.entitlements; sourceTree = "<group>"; };
+		BC0000000000000000000040 /* AuraBeatShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AuraBeatShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BC0000000000000000000048 /* AuraBeatShare-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "AuraBeatShare-Info.plist"; sourceTree = "<group>"; };
+		BC0000000000000000000049 /* AuraBeatShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AuraBeatShare.entitlements; sourceTree = "<group>"; };
+		BC0000000000000000000050 /* AuraBeatUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AuraBeatUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		BC0000000000000000000007 /* AuraBeat */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AuraBeat;
+			sourceTree = "<group>";
+		};
+		BC0000000000000000000008 /* AuraBeatTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AuraBeatTests;
+			sourceTree = "<group>";
+		};
+		BC0000000000000000000009 /* AuraBeatWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AuraBeatWidget;
+			sourceTree = "<group>";
+		};
+		BC000000000000000000002E /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		BC0000000000000000000044 /* AuraBeatShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AuraBeatShare;
+			sourceTree = "<group>";
+		};
+		BC0000000000000000000054 /* AuraBeatUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AuraBeatUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BC0000000000000000000015 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BC000000000000000000000E /* AuraBeatKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC0000000000000000000019 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC000000000000000000001C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC0000000000000000000045 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC0000000000000000000055 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		BC0000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				BC0000000000000000000007 /* AuraBeat */,
+				BC000000000000000000002E /* Shared */,
+				BC0000000000000000000009 /* AuraBeatWidget */,
+				BC0000000000000000000044 /* AuraBeatShare */,
+				BC0000000000000000000008 /* AuraBeatTests */,
+				BC0000000000000000000054 /* AuraBeatUITests */,
+				BC000000000000000000000A /* Config */,
+				BC0000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BC0000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BC0000000000000000000004 /* AuraBeat.app */,
+				BC0000000000000000000005 /* AuraBeatTests.xctest */,
+				BC0000000000000000000006 /* AuraBeatWidgetExtension.appex */,
+				BC0000000000000000000040 /* AuraBeatShareExtension.appex */,
+				BC0000000000000000000050 /* AuraBeatUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BC000000000000000000000A /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				BC0000000000000000000030 /* AuraBeat-Info.plist */,
+				BC0000000000000000000032 /* AuraBeat.entitlements */,
+				BC0000000000000000000031 /* AuraBeatWidget-Info.plist */,
+				BC0000000000000000000033 /* AuraBeatWidget.entitlements */,
+				BC0000000000000000000048 /* AuraBeatShare-Info.plist */,
+				BC0000000000000000000049 /* AuraBeatShare.entitlements */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BC0000000000000000000011 /* AuraBeat */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BC0000000000000000000025 /* Build configuration list for PBXNativeTarget "AuraBeat" */;
+			buildPhases = (
+				BC0000000000000000000014 /* Sources */,
+				BC0000000000000000000015 /* Frameworks */,
+				BC0000000000000000000016 /* Resources */,
+				BC0000000000000000000017 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BC000000000000000000001F /* PBXTargetDependency */,
+				BC000000000000000000004A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BC0000000000000000000007 /* AuraBeat */,
+				BC000000000000000000002E /* Shared */,
+			);
+			name = AuraBeat;
+			packageProductDependencies = (
+				BC000000000000000000000C /* AuraBeatKit */,
+			);
+			productName = AuraBeat;
+			productReference = BC0000000000000000000004 /* AuraBeat.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BC0000000000000000000012 /* AuraBeatTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BC0000000000000000000028 /* Build configuration list for PBXNativeTarget "AuraBeatTests" */;
+			buildPhases = (
+				BC0000000000000000000018 /* Sources */,
+				BC0000000000000000000019 /* Frameworks */,
+				BC000000000000000000001A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BC0000000000000000000021 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BC0000000000000000000008 /* AuraBeatTests */,
+			);
+			name = AuraBeatTests;
+			packageProductDependencies = (
+			);
+			productName = AuraBeatTests;
+			productReference = BC0000000000000000000005 /* AuraBeatTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		BC0000000000000000000013 /* AuraBeatWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BC000000000000000000002B /* Build configuration list for PBXNativeTarget "AuraBeatWidgetExtension" */;
+			buildPhases = (
+				BC000000000000000000001B /* Sources */,
+				BC000000000000000000001C /* Frameworks */,
+				BC000000000000000000001D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BC0000000000000000000009 /* AuraBeatWidget */,
+				BC000000000000000000002E /* Shared */,
+			);
+			name = AuraBeatWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = AuraBeatWidgetExtension;
+			productReference = BC0000000000000000000006 /* AuraBeatWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		BC0000000000000000000043 /* AuraBeatShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BC000000000000000000004B /* Build configuration list for PBXNativeTarget "AuraBeatShareExtension" */;
+			buildPhases = (
+				BC0000000000000000000047 /* Sources */,
+				BC0000000000000000000045 /* Frameworks */,
+				BC0000000000000000000046 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BC000000000000000000002E /* Shared */,
+				BC0000000000000000000044 /* AuraBeatShare */,
+			);
+			name = AuraBeatShareExtension;
+			packageProductDependencies = (
+			);
+			productName = AuraBeatShareExtension;
+			productReference = BC0000000000000000000040 /* AuraBeatShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		BC0000000000000000000053 /* AuraBeatUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BC000000000000000000005B /* Build configuration list for PBXNativeTarget "AuraBeatUITests" */;
+			buildPhases = (
+				BC0000000000000000000057 /* Sources */,
+				BC0000000000000000000055 /* Frameworks */,
+				BC0000000000000000000056 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BC000000000000000000005A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BC0000000000000000000054 /* AuraBeatUITests */,
+			);
+			name = AuraBeatUITests;
+			packageProductDependencies = (
+			);
+			productName = AuraBeatUITests;
+			productReference = BC0000000000000000000050 /* AuraBeatUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BC0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					BC0000000000000000000011 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					BC0000000000000000000012 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = BC0000000000000000000011;
+					};
+					BC0000000000000000000013 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					BC0000000000000000000043 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					BC0000000000000000000053 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = BC0000000000000000000011;
+					};
+				};
+			};
+			buildConfigurationList = BC0000000000000000000022 /* Build configuration list for PBXProject "AuraBeat" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				de,
+				es,
+				fr,
+				he,
+				hi,
+				id,
+				it,
+				ja,
+				pl,
+				pt,
+				ru,
+				th,
+				tr,
+				vi,
+				"zh-Hans",
+			);
+			mainGroup = BC0000000000000000000002;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BC000000000000000000000B /* XCLocalSwiftPackageReference "../AuraBeatKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BC0000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BC0000000000000000000011 /* AuraBeat */,
+				BC0000000000000000000012 /* AuraBeatTests */,
+				BC0000000000000000000013 /* AuraBeatWidgetExtension */,
+				BC0000000000000000000043 /* AuraBeatShareExtension */,
+				BC0000000000000000000053 /* AuraBeatUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BC0000000000000000000016 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC000000000000000000001A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC000000000000000000001D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC0000000000000000000046 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC0000000000000000000056 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BC0000000000000000000014 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC0000000000000000000018 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC000000000000000000001B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC0000000000000000000047 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC0000000000000000000057 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BC000000000000000000001F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BC0000000000000000000013 /* AuraBeatWidgetExtension */;
+			targetProxy = BC000000000000000000001E /* PBXContainerItemProxy */;
+		};
+		BC0000000000000000000021 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BC0000000000000000000011 /* AuraBeat */;
+			targetProxy = BC0000000000000000000020 /* PBXContainerItemProxy */;
+		};
+		BC000000000000000000004A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BC0000000000000000000043 /* AuraBeatShareExtension */;
+			targetProxy = BC0000000000000000000042 /* PBXContainerItemProxy */;
+		};
+		BC000000000000000000005A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BC0000000000000000000011 /* AuraBeat */;
+			targetProxy = BC0000000000000000000052 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		BC0000000000000000000023 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		BC0000000000000000000024 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BC0000000000000000000026 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconGlassDark AppIconGlassClear AppIconGlassClearDark AppIconMonochrome";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/AuraBeat.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/AuraBeat-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AuraBeat;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "AuraBeat plays music from your library.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "AuraBeat connects to SMB and WebDAV servers and Listen Together parties on your local network.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "AuraBeat saves your Replay poster to Photos.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.music.aurabeat;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BC0000000000000000000027 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconGlassDark AppIconGlassClear AppIconGlassClearDark AppIconMonochrome";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/AuraBeat.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/AuraBeat-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AuraBeat;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "AuraBeat plays music from your library.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "AuraBeat connects to SMB and WebDAV servers and Listen Together parties on your local network.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "AuraBeat saves your Replay poster to Photos.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.music.aurabeat;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BC0000000000000000000029 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.music.aurabeat.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AuraBeat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AuraBeat";
+			};
+			name = Debug;
+		};
+		BC000000000000000000002A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.music.aurabeat.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AuraBeat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AuraBeat";
+			};
+			name = Release;
+		};
+		BC000000000000000000002C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/AuraBeatWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/AuraBeatWidget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AuraBeat;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.music.aurabeat.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BC000000000000000000002D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/AuraBeatWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/AuraBeatWidget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AuraBeat;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.music.aurabeat.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BC000000000000000000004C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/AuraBeatShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/AuraBeatShare-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AuraBeat;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.music.aurabeat.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BC000000000000000000004D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/AuraBeatShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/AuraBeatShare-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AuraBeat;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.music.aurabeat.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BC000000000000000000005C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.music.aurabeat.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AuraBeat;
+			};
+			name = Debug;
+		};
+		BC000000000000000000005D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.music.aurabeat.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AuraBeat;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BC0000000000000000000022 /* Build configuration list for PBXProject "AuraBeat" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC0000000000000000000023 /* Debug */,
+				BC0000000000000000000024 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BC0000000000000000000025 /* Build configuration list for PBXNativeTarget "AuraBeat" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC0000000000000000000026 /* Debug */,
+				BC0000000000000000000027 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BC0000000000000000000028 /* Build configuration list for PBXNativeTarget "AuraBeatTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC0000000000000000000029 /* Debug */,
+				BC000000000000000000002A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BC000000000000000000002B /* Build configuration list for PBXNativeTarget "AuraBeatWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC000000000000000000002C /* Debug */,
+				BC000000000000000000002D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BC000000000000000000004B /* Build configuration list for PBXNativeTarget "AuraBeatShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC000000000000000000004C /* Debug */,
+				BC000000000000000000004D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BC000000000000000000005B /* Build configuration list for PBXNativeTarget "AuraBeatUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC000000000000000000005C /* Debug */,
+				BC000000000000000000005D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		BC000000000000000000000B /* XCLocalSwiftPackageReference "../AuraBeatKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../AuraBeatKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BC000000000000000000000C /* AuraBeatKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AuraBeatKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = BC0000000000000000000001 /* Project object */;
+}
