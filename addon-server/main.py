@@ -17,6 +17,7 @@ import hmac
 import hashlib
 import json
 import os
+import re
 import subprocess
 import time
 import urllib.parse
@@ -28,7 +29,7 @@ from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
 from cryptography.hazmat.primitives.ciphers import Cipher, modes
 from cryptography.hazmat.primitives import padding
 from fastapi import FastAPI, Depends, Request, HTTPException
-from fastapi.responses import Response, JSONResponse, FileResponse, HTMLResponse
+from fastapi.responses import Response, JSONResponse, FileResponse, HTMLResponse, RedirectResponse
 from bitchord_addon_auth import BitChordAuth
 
 try:
@@ -261,24 +262,37 @@ def decrypt_jiosaavn_url(enc_url: str) -> str:
         return ""
 
 
-def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Path:
+def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Path]:
     """Transcodes a source audio stream into target quality and caches on disk."""
-    if tier == "atmos":
-        out_path = CACHE_DIR / f"{clean_id}_atmos.mp4"
-        if not out_path.exists() or out_path.stat().st_size == 0:
+    if not raw_url:
+        return None
+    try:
+        if tier == "atmos":
+            out_path = CACHE_DIR / f"{clean_id}_atmos.mp4"
+            if out_path.exists() and out_path.stat().st_size > 1000:
+                return out_path
+            tmp_path = CACHE_DIR / f"{clean_id}_atmos_{os.getpid()}_{time.time_ns()}.tmp.mp4"
             cmd = [
                 FFMPEG_EXE, "-y",
                 "-i", raw_url,
                 "-af", "surround",
                 "-c:a", "eac3",
                 "-b:a", "640k",
-                str(out_path)
+                "-movflags", "+faststart",
+                str(tmp_path)
             ]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return out_path
-    elif tier == "cd":
-        out_path = CACHE_DIR / f"{clean_id}_cd.flac"
-        if not out_path.exists() or out_path.stat().st_size == 0:
+            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+            if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
+                tmp_path.replace(out_path)
+                return out_path
+            if tmp_path.exists():
+                tmp_path.unlink(missing_ok=True)
+
+        elif tier == "cd":
+            out_path = CACHE_DIR / f"{clean_id}_cd.flac"
+            if out_path.exists() and out_path.stat().st_size > 1000:
+                return out_path
+            tmp_path = CACHE_DIR / f"{clean_id}_cd_{os.getpid()}_{time.time_ns()}.tmp.flac"
             cmd = [
                 FFMPEG_EXE, "-y",
                 "-i", raw_url,
@@ -286,37 +300,61 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Path:
                 "-sample_fmt", "s16",
                 "-ar", "44100",
                 "-compression_level", "0",
-                str(out_path)
+                str(tmp_path)
             ]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return out_path
-    elif tier == "low":
-        out_path = CACHE_DIR / f"{clean_id}_low.m4a"
-        if not out_path.exists() or out_path.stat().st_size == 0:
+            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+            if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
+                tmp_path.replace(out_path)
+                return out_path
+            if tmp_path.exists():
+                tmp_path.unlink(missing_ok=True)
+
+        elif tier == "low":
+            out_path = CACHE_DIR / f"{clean_id}_low.m4a"
+            if out_path.exists() and out_path.stat().st_size > 1000:
+                return out_path
+            tmp_path = CACHE_DIR / f"{clean_id}_low_{os.getpid()}_{time.time_ns()}.tmp.m4a"
             cmd = [
                 FFMPEG_EXE, "-y",
                 "-i", raw_url,
                 "-c:a", "aac",
                 "-b:a", "64k",
                 "-ar", "44100",
-                str(out_path)
+                "-movflags", "+faststart",
+                str(tmp_path)
             ]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return out_path
-    else:  # hires (default for lossless)
-        out_path = CACHE_DIR / f"{clean_id}_hires.flac"
-        if not out_path.exists() or out_path.stat().st_size == 0:
+            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+            if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
+                tmp_path.replace(out_path)
+                return out_path
+            if tmp_path.exists():
+                tmp_path.unlink(missing_ok=True)
+
+        else:  # hires (default for lossless - FLAC 24-bit / 96 kHz)
+            out_path = CACHE_DIR / f"{clean_id}_hires.flac"
+            if out_path.exists() and out_path.stat().st_size > 1000:
+                return out_path
+            tmp_path = CACHE_DIR / f"{clean_id}_hires_{os.getpid()}_{time.time_ns()}.tmp.flac"
             cmd = [
                 FFMPEG_EXE, "-y",
                 "-i", raw_url,
                 "-c:a", "flac",
-                "-sample_fmt", "s24",
-                "-ar", "48000",
+                "-sample_fmt", "s32",
+                "-bits_per_raw_sample", "24",
+                "-ar", "96000",
                 "-compression_level", "0",
-                str(out_path)
+                str(tmp_path)
             ]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return out_path
+            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=25)
+            if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
+                tmp_path.replace(out_path)
+                return out_path
+            if tmp_path.exists():
+                tmp_path.unlink(missing_ok=True)
+
+    except Exception as e:
+        print(f"Transcode error for {clean_id} ({tier}): {e}")
+    return None
 
 
 def fetch_jiosaavn_track(song_id: str) -> Optional[dict]:
@@ -590,28 +628,59 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
             media_type = "audio/mp4"
 
         cached_file = transcode_to_quality(raw_url, clean_id, tier)
-        if cached_file.exists() and cached_file.stat().st_size > 0:
+        if cached_file and cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
+        else:
+            # Bulletproof fallback: redirect directly to JioSaavn CDN audio stream so playback never fails
+            return RedirectResponse(url=raw_url, status_code=307)
 
-    # Fallback to high-res fixture
-    return FileResponse(FIXTURES_DIR / "hires.flac", media_type="audio/flac")
+    # 3. Fallback to fixture or 404
+    hires_fix = FIXTURES_DIR / "hires.flac"
+    if hires_fix.exists():
+        return FileResponse(hires_fix, media_type="audio/flac")
+    return Response(status_code=404, content="Track audio not found")
 
 
-def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
-    url = f"https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=android&q={urllib.parse.quote(query)}&p=1&n=15"
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+def clean_search_query(q: str) -> str:
+    # Remove bracketed tags like (Official Video), [Audio], (feat. X)
+    cleaned = re.sub(r'[\(\[\{].*?[\)\]\}]', ' ', q)
+    # Remove noise words
+    cleaned = re.sub(r'\b(official\s+video|music\s+video|lyric\s+video|official|audio|remix|slowed|reverb)\b', ' ', cleaned, flags=re.IGNORECASE)
+    # Remove extra spaces
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    return cleaned
+
+
+def fetch_jiosaavn_search_api(q: str) -> list:
+    url = f"https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=android&q={urllib.parse.quote(q)}&p=1&n=15"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
     try:
         with urllib.request.urlopen(req, timeout=5) as r:
             data = json.loads(r.read())
+            return data.get("results", []) or []
     except Exception as e:
-        print(f"JioSaavn search error: {e}")
+        print(f"JioSaavn search error for '{q}': {e}")
+        return []
+
+
+def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
+    results = fetch_jiosaavn_search_api(query)
+    if not results:
+        cq = clean_search_query(query)
+        if cq and cq != query:
+            results = fetch_jiosaavn_search_api(cq)
+        if not results and " - " in query:
+            parts = query.split(" - ")
+            results = fetch_jiosaavn_search_api(parts[0].strip())
+    if not results:
         return []
 
     songs = []
     wants_lossless = quality in ["lossless", "max", "hires", "flac"]
-    wants_atmos = atmos in ["auto", "1", "true"] or quality == "atmos"
+    # Atmos is only selected if explicitly requested via quality=atmos or query mentions atmos/spatial
+    wants_atmos = (quality == "atmos") or ("atmos" in query.lower()) or ("spatial" in query.lower())
 
-    for s in data.get("results", []):
+    for s in results:
         more = s.get("more_info", {})
         enc_url = more.get("encrypted_media_url", "")
         stream_url = decrypt_jiosaavn_url(enc_url)
@@ -636,8 +705,27 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             "rawStreamURL": stream_url
         }
 
-        # 1. Primary Lossless FLAC row
-        if wants_lossless:
+        if wants_atmos:
+            # Dolby Atmos Spatial Audio track
+            atmos_track = {
+                "id": f"atmos_{song_id}",
+                "title": f"{title} (Spatial Audio)",
+                "artist": artist_name,
+                "album": album_name,
+                "duration": duration,
+                "format": "eac3_joc",
+                "audioQuality": "Dolby Atmos",
+                "audioMode": "DOLBY_ATMOS",
+                "audioModes": ["DOLBY_ATMOS"],
+                "atmos": True,
+                "bitrate": 768,
+                "artworkURL": image,
+                "rawStreamURL": stream_url
+            }
+            songs.append(atmos_track)
+            RECENT_TRACKS[atmos_track["id"]] = atmos_track
+        elif wants_lossless:
+            # Hi-Res Lossless FLAC 24-bit / 96 kHz (Max Quality)
             track = {
                 "id": f"hires_{song_id}",
                 "title": title,
@@ -650,44 +738,6 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
                 "sampleRate": 96000,
                 "bitDepth": 24,
                 "audioModes": ["STEREO"],
-                "artworkURL": image,
-                "rawStreamURL": stream_url
-            }
-            songs.append(track)
-            RECENT_TRACKS[track["id"]] = track
-
-            # 2. Immersive Dolby Atmos row
-            if wants_atmos:
-                atmos_track = {
-                    "id": f"atmos_{song_id}",
-                    "title": f"{title} (Spatial Audio)",
-                    "artist": artist_name,
-                    "album": album_name,
-                    "duration": duration,
-                    "format": "eac3_joc",
-                    "audioQuality": "Dolby Atmos",
-                    "audioMode": "DOLBY_ATMOS",
-                    "audioModes": ["DOLBY_ATMOS"],
-                    "atmos": True,
-                    "bitrate": 768,
-                    "artworkURL": image,
-                    "rawStreamURL": stream_url
-                }
-                songs.append(atmos_track)
-                RECENT_TRACKS[atmos_track["id"]] = atmos_track
-        elif quality == "atmos":
-            track = {
-                "id": f"atmos_{song_id}",
-                "title": title,
-                "artist": artist_name,
-                "album": album_name,
-                "duration": duration,
-                "format": "eac3_joc",
-                "audioQuality": "Dolby Atmos",
-                "audioMode": "DOLBY_ATMOS",
-                "audioModes": ["DOLBY_ATMOS"],
-                "atmos": True,
-                "bitrate": 768,
                 "artworkURL": image,
                 "rawStreamURL": stream_url
             }
@@ -765,7 +815,7 @@ def stream(
     if not track:
         track = fetch_jiosaavn_track(clean_id)
 
-    if track_id.startswith("atmos_") or quality == "atmos":
+    if track_id.startswith("atmos_") or (quality == "atmos" and not track_id.startswith("hires_")):
         media_url = signed_media_url(request, f"atmos_{clean_id}")
         return {
             "url": media_url,
