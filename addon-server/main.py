@@ -106,6 +106,10 @@ async def log_requests(request: Request, call_next):
 def get_logs():
     return {"count": len(REQUEST_LOGS), "logs": list(reversed(REQUEST_LOGS))}
 
+@app.head("/{full_path:path}")
+def handle_head():
+    return Response(status_code=200, headers={"Access-Control-Allow-Origin": "*"})
+
 @app.options("/{full_path:path}")
 def handle_options():
     return Response(status_code=200, headers={"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "*"})
@@ -267,7 +271,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Path:
                 "-i", raw_url,
                 "-af", "surround",
                 "-c:a", "eac3",
-                "-b:a", "768k",
+                "-b:a", "640k",
                 str(out_path)
             ]
             subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -281,6 +285,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Path:
                 "-c:a", "flac",
                 "-sample_fmt", "s16",
                 "-ar", "44100",
+                "-compression_level", "0",
                 str(out_path)
             ]
             subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -305,12 +310,42 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Path:
                 FFMPEG_EXE, "-y",
                 "-i", raw_url,
                 "-c:a", "flac",
-                "-sample_fmt", "s32",
-                "-ar", "96000",
+                "-sample_fmt", "s24",
+                "-ar", "48000",
+                "-compression_level", "0",
                 str(out_path)
             ]
             subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return out_path
+
+
+def fetch_jiosaavn_track(song_id: str) -> Optional[dict]:
+    """Fallback fetch direct from JioSaavn API if song_id was evicted from memory."""
+    if not song_id:
+        return None
+    url = f"https://www.jiosaavn.com/api.php?__call=song.getDetails&cc=in&_marker=0%3F_marker%3D0&_format=json&pids={song_id}"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=6) as r:
+            data = json.loads(r.read())
+            info = data.get(song_id)
+            if info:
+                enc_url = info.get("encrypted_media_url", "")
+                raw_url = decrypt_jiosaavn_url(enc_url)
+                track_data = {
+                    "id": song_id,
+                    "title": html.unescape(info.get("song", "")),
+                    "artist": html.unescape(info.get("primary_artists", "")),
+                    "album": html.unescape(info.get("album", "")),
+                    "artworkURL": info.get("image", "").replace("150x150", "500x500"),
+                    "rawStreamURL": raw_url,
+                    "streamURL": raw_url,
+                }
+                RECENT_TRACKS[song_id] = track_data
+                return track_data
+    except Exception as e:
+        print(f"Error fetching JioSaavn track {song_id}: {e}")
+    return None
 
 
 # ── Public routes ──
@@ -327,12 +362,15 @@ def get_root():
 
 @app.get("/manifest")
 @app.get("/manifest.json")
+@app.get("/addon/manifest.json")
+@app.get("/addon")
 def get_manifest():
     # Stays public (Task 1)
     return JSONResponse(MANIFEST, headers={"Access-Control-Allow-Origin": "*"})
 
 
 @app.get("/media/{track_id}")
+@app.get("/media/{track_id}/")
 def get_media(track_id: str, exp: str = "", sig: str = ""):
     # Media URLs expire in 15-30 min and don't need BitChord headers (Task 4)
     if not media_allowed(track_id, exp, sig):
@@ -354,6 +392,9 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
         .replace("aac_", "")
     )
     track_info = RECENT_TRACKS.get(clean_id) or RECENT_TRACKS.get(track_id)
+    if not track_info:
+        track_info = fetch_jiosaavn_track(clean_id)
+
     if track_info and track_info.get("rawStreamURL"):
         raw_url = track_info["rawStreamURL"]
         tier = "hires"
@@ -541,6 +582,8 @@ def stream(
         .replace("aac_", "")
     )
     track = RECENT_TRACKS.get(track_id) or RECENT_TRACKS.get(clean_id)
+    if not track:
+        track = fetch_jiosaavn_track(clean_id)
 
     if track_id.startswith("atmos_") or quality == "atmos":
         media_url = signed_media_url(request, f"atmos_{clean_id}")
