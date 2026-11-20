@@ -5,7 +5,13 @@
 #   scripts/make-ipa.sh            → build/AuraBeat-<version>-<build>.ipa
 # JOBS=n caps parallel compile jobs (default 3), as in the other scripts.
 set -euo pipefail
-export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}
+if [ -z "${DEVELOPER_DIR:-}" ]; then
+  if [ -d "/Applications/Xcode.app/Contents/Developer" ]; then
+    export DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+  else
+    export DEVELOPER_DIR="$(xcode-select -p 2>/dev/null || echo '/Applications/Xcode.app/Contents/Developer')"
+  fi
+fi
 cd "$(dirname "$0")/.."
 
 DERIVED=.derived-release
