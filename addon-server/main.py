@@ -33,18 +33,40 @@ from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.responses import Response, JSONResponse, FileResponse, HTMLResponse, RedirectResponse
 from bitchord_addon_auth import BitChordAuth
 
-try:
-    import imageio_ffmpeg
-    FFMPEG_EXE = imageio_ffmpeg.get_ffmpeg_exe()
-except Exception:
-    FFMPEG_EXE = "ffmpeg"
+TRANSCODE_LOGS = []
+
+def find_ffmpeg():
+    import shutil
+    # 1. System ffmpeg in PATH
+    sys_ffmpeg = shutil.which("ffmpeg")
+    if sys_ffmpeg:
+        return sys_ffmpeg
+    # 2. Check common Linux locations
+    for p in ["/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/opt/render/project/src/.venv/bin/ffmpeg"]:
+        if os.path.exists(p) and os.access(p, os.X_OK):
+            return p
+    # 3. imageio-ffmpeg
+    try:
+        import imageio_ffmpeg
+        exe = imageio_ffmpeg.get_ffmpeg_exe()
+        try:
+            st = os.stat(exe)
+            os.chmod(exe, st.st_mode | 0o111)
+        except Exception:
+            pass
+        return exe
+    except Exception as e:
+        print(f"imageio_ffmpeg error: {e}")
+    return "ffmpeg"
+
+FFMPEG_EXE = find_ffmpeg()
 
 # Paths
 BASE_DIR = Path(__file__).parent
 FIXTURES_DIR = BASE_DIR / "fixtures"
-CACHE_DIR = BASE_DIR / "cache"
-FIXTURES_DIR.mkdir(exist_ok=True)
-CACHE_DIR.mkdir(exist_ok=True)
+CACHE_DIR = Path(os.getenv("CACHE_DIR", "/tmp/aurabeat_cache" if os.name != "nt" else str(BASE_DIR / "cache")))
+FIXTURES_DIR.mkdir(parents=True, exist_ok=True)
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Configured hostnames from env
 raw_hosts = os.getenv("BITCHORD_HOSTS", "localhost,127.0.0.1,192.168.1.13,aurabeat-ios.onrender.com")
@@ -266,19 +288,28 @@ def decrypt_jiosaavn_url(enc_url: str) -> str:
         return ""
 
 
+ACTIVE_TRANSCODES = set()
+
 def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Path]:
     """Transcodes a source audio stream into target quality and caches on disk."""
     if not raw_url:
         return None
+    lock_key = f"{clean_id}_{tier}"
+    if lock_key in ACTIVE_TRANSCODES:
+        # Another thread is already transcoding this exact file
+        return None
+    ACTIVE_TRANSCODES.add(lock_key)
+    t_start = time.time()
     try:
+        out_ext = "flac" if tier in ["hires", "cd"] else ("mp4" if tier == "atmos" else "m4a")
+        out_path = CACHE_DIR / f"{clean_id}_{tier}.{out_ext}"
+        if out_path.exists() and out_path.stat().st_size > 1000:
+            return out_path
+        tmp_path = CACHE_DIR / f"{clean_id}_{tier}_{os.getpid()}_{time.time_ns()}.tmp.{out_ext}"
+
         if tier == "atmos":
-            out_path = CACHE_DIR / f"{clean_id}_atmos.mp4"
-            if out_path.exists() and out_path.stat().st_size > 1000:
-                return out_path
-            tmp_path = CACHE_DIR / f"{clean_id}_atmos_{os.getpid()}_{time.time_ns()}.tmp.mp4"
             cmd = [
                 FFMPEG_EXE, "-y",
-                "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "2",
                 "-i", raw_url,
                 "-c:a", "eac3",
                 "-b:a", "768k",
@@ -286,21 +317,9 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
                 "-movflags", "+faststart",
                 str(tmp_path)
             ]
-            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-            if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
-                tmp_path.replace(out_path)
-                return out_path
-            if tmp_path.exists():
-                tmp_path.unlink(missing_ok=True)
-
         elif tier == "cd":
-            out_path = CACHE_DIR / f"{clean_id}_cd.flac"
-            if out_path.exists() and out_path.stat().st_size > 1000:
-                return out_path
-            tmp_path = CACHE_DIR / f"{clean_id}_cd_{os.getpid()}_{time.time_ns()}.tmp.flac"
             cmd = [
                 FFMPEG_EXE, "-y",
-                "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "2",
                 "-i", raw_url,
                 "-c:a", "flac",
                 "-sample_fmt", "s16",
@@ -308,21 +327,9 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
                 "-compression_level", "0",
                 str(tmp_path)
             ]
-            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-            if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
-                tmp_path.replace(out_path)
-                return out_path
-            if tmp_path.exists():
-                tmp_path.unlink(missing_ok=True)
-
         elif tier == "low":
-            out_path = CACHE_DIR / f"{clean_id}_low.m4a"
-            if out_path.exists() and out_path.stat().st_size > 1000:
-                return out_path
-            tmp_path = CACHE_DIR / f"{clean_id}_low_{os.getpid()}_{time.time_ns()}.tmp.m4a"
             cmd = [
                 FFMPEG_EXE, "-y",
-                "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "2",
                 "-i", raw_url,
                 "-c:a", "aac",
                 "-b:a", "64k",
@@ -330,21 +337,9 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
                 "-movflags", "+faststart",
                 str(tmp_path)
             ]
-            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-            if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
-                tmp_path.replace(out_path)
-                return out_path
-            if tmp_path.exists():
-                tmp_path.unlink(missing_ok=True)
-
         else:  # hires (default for lossless - FLAC 24-bit / 96 kHz)
-            out_path = CACHE_DIR / f"{clean_id}_hires.flac"
-            if out_path.exists() and out_path.stat().st_size > 1000:
-                return out_path
-            tmp_path = CACHE_DIR / f"{clean_id}_hires_{os.getpid()}_{time.time_ns()}.tmp.flac"
             cmd = [
                 FFMPEG_EXE, "-y",
-                "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "2",
                 "-i", raw_url,
                 "-c:a", "flac",
                 "-sample_fmt", "s32",
@@ -353,15 +348,41 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
                 "-compression_level", "0",
                 str(tmp_path)
             ]
-            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=25)
-            if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
-                tmp_path.replace(out_path)
-                return out_path
-            if tmp_path.exists():
-                tmp_path.unlink(missing_ok=True)
+
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=35)
+        duration = round((time.time() - t_start) * 1000, 1)
+        log_entry = {
+            "time": time.strftime("%H:%M:%S"),
+            "id": clean_id,
+            "tier": tier,
+            "returncode": res.returncode,
+            "duration_ms": duration,
+            "cmd": " ".join(cmd),
+            "stderr": res.stderr[-500:] if res.stderr else "",
+            "size": tmp_path.stat().st_size if tmp_path.exists() else 0
+        }
+        TRANSCODE_LOGS.append(log_entry)
+        if len(TRANSCODE_LOGS) > 30:
+            TRANSCODE_LOGS.pop(0)
+
+        if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
+            tmp_path.replace(out_path)
+            return out_path
+        if tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
 
     except Exception as e:
+        duration = round((time.time() - t_start) * 1000, 1)
+        TRANSCODE_LOGS.append({
+            "time": time.strftime("%H:%M:%S"),
+            "id": clean_id,
+            "tier": tier,
+            "error": str(e),
+            "duration_ms": duration
+        })
         print(f"Transcode error for {clean_id} ({tier}): {e}")
+    finally:
+        ACTIVE_TRANSCODES.discard(lock_key)
     return None
 
 
@@ -378,10 +399,17 @@ def fetch_jiosaavn_track(song_id: str) -> Optional[dict]:
             if info:
                 enc_url = info.get("encrypted_media_url", "")
                 raw_url = decrypt_jiosaavn_url(enc_url)
+                artist = (
+                    info.get("primary_artists")
+                    or info.get("singers")
+                    or info.get("music")
+                    or ", ".join(info.get("artistMap", {}).keys())
+                    or ""
+                )
                 track_data = {
                     "id": song_id,
                     "title": html.unescape(info.get("song", "")),
-                    "artist": html.unescape(info.get("primary_artists", "")),
+                    "artist": html.unescape(artist),
                     "album": html.unescape(info.get("album", "")),
                     "artworkURL": info.get("image", "").replace("150x150", "500x500"),
                     "rawStreamURL": raw_url,
@@ -646,12 +674,12 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
         # Trigger transcode in background if not already started
         threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, tier), daemon=True).start()
 
-        # Poll up to 2.5s for fast delivery
+        # Poll up to 4.5s for genuine FLAC / Atmos audio (AuraBeat timeout is 6.0s)
         t0 = time.time()
-        while time.time() - t0 < 2.5:
+        while time.time() - t0 < 4.5:
             if cached_file.exists() and cached_file.stat().st_size > 1000:
                 return FileResponse(cached_file, media_type=media_type)
-            time.sleep(0.15)
+            time.sleep(0.1)
 
         if cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
@@ -667,11 +695,51 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
     return Response(status_code=404, content="Track audio not found")
 
 
+@app.get("/debug")
+def get_debug():
+    test_res = None
+    try:
+        raw_test = "https://aac.saavncdn.com/893/0de03424c2750337d2a201e4c8689597_320.mp4"
+        test_out = CACHE_DIR / f"debug_{int(time.time())}.flac"
+        cmd = [
+            FFMPEG_EXE, "-y",
+            "-t", "3",
+            "-i", raw_test,
+            "-c:a", "flac",
+            "-sample_fmt", "s32",
+            "-bits_per_raw_sample", "24",
+            "-ar", "96000",
+            "-compression_level", "0",
+            str(test_out)
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=15)
+        test_res = {
+            "returncode": res.returncode,
+            "cmd": " ".join(cmd),
+            "stderr": res.stderr[-500:],
+            "file_size": test_out.stat().st_size if test_out.exists() else 0
+        }
+        if test_out.exists():
+            test_out.unlink(missing_ok=True)
+    except Exception as e:
+        test_res = {"error": str(e)}
+
+    return {
+        "ffmpeg_exe": FFMPEG_EXE,
+        "ffmpeg_exists": os.path.exists(FFMPEG_EXE),
+        "cache_dir": str(CACHE_DIR),
+        "cache_files": [f.name for f in CACHE_DIR.iterdir()] if CACHE_DIR.exists() else [],
+        "test_transcode": test_res,
+        "transcode_logs": list(reversed(TRANSCODE_LOGS)),
+    }
+
+
 def clean_search_query(q: str) -> str:
     # Remove bracketed tags like (Official Video), [Audio], (feat. X)
     cleaned = re.sub(r'[\(\[\{].*?[\)\]\}]', ' ', q)
     # Remove noise words
-    cleaned = re.sub(r'\b(official\s+video|music\s+video|lyric\s+video|official|audio|remix|slowed|reverb)\b', ' ', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\b(feat\.?|ft\.?|featuring|official\s+video|music\s+video|lyric\s+video|official|audio|remix|slowed|reverb|full\s+song|video)\b', ' ', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'[^\w\s]', ' ', cleaned)
     # Remove extra spaces
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned
@@ -719,16 +787,23 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
         # Comprehensive artist list so TrackMatcher.sharesArtist matches all collaborators
         artists = []
         artist_map = more.get("artistMap", {})
-        if isinstance(artist_map.get("primary_artists"), list):
-            artists.extend([a.get("name") for a in artist_map["primary_artists"] if a.get("name")])
-        if isinstance(artist_map.get("featured_artists"), list):
-            artists.extend([a.get("name") for a in artist_map["featured_artists"] if a.get("name")])
-        if isinstance(artist_map.get("artists"), list):
-            artists.extend([a.get("name") for a in artist_map["artists"] if a.get("name")])
+        if isinstance(artist_map, dict):
+            if isinstance(artist_map.get("primary_artists"), list):
+                artists.extend([a.get("name") for a in artist_map["primary_artists"] if a.get("name")])
+            if isinstance(artist_map.get("featured_artists"), list):
+                artists.extend([a.get("name") for a in artist_map["featured_artists"] if a.get("name")])
+            if isinstance(artist_map.get("artists"), list):
+                artists.extend([a.get("name") for a in artist_map["artists"] if a.get("name")])
+            for k, v in artist_map.items():
+                if isinstance(v, (int, str)) and k not in ["primary_artists", "featured_artists", "artists"]:
+                    if k not in artists:
+                        artists.append(k)
         if not artists and more.get("primary_artists"):
             artists.append(more["primary_artists"])
         if not artists and more.get("singers"):
             artists.append(more["singers"])
+        if not artists and more.get("music"):
+            artists.append(more["music"])
         if not artists and s.get("subtitle"):
             artists.append(s["subtitle"])
 
