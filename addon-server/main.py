@@ -367,6 +367,14 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
 
         if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
             tmp_path.replace(out_path)
+            # Prune cache if more than 50 files
+            try:
+                files = sorted(CACHE_DIR.glob("*"), key=lambda p: p.stat().st_mtime)
+                if len(files) > 50:
+                    for old_f in files[:len(files)-50]:
+                        old_f.unlink(missing_ok=True)
+            except Exception:
+                pass
             return out_path
         if tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
@@ -674,9 +682,9 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
         # Trigger transcode in background if not already started
         threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, tier), daemon=True).start()
 
-        # Poll up to 4.5s for genuine FLAC / Atmos audio (AuraBeat timeout is 6.0s)
+        # Poll up to 5.0s for genuine FLAC / Atmos audio (AuraBeat timeout is 6.0s)
         t0 = time.time()
-        while time.time() - t0 < 4.5:
+        while time.time() - t0 < 5.0:
             if cached_file.exists() and cached_file.stat().st_size > 1000:
                 return FileResponse(cached_file, media_type=media_type)
             time.sleep(0.1)
@@ -877,6 +885,15 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             }
             songs.append(track)
             RECENT_TRACKS[track["id"]] = track
+
+    # Pre-transcode top candidates in background so audio is immediately ready on tap
+    if songs:
+        for s_candidate in songs[:2]:
+            c_id = s_candidate["id"].replace("atmos_", "").replace("hires_", "")
+            c_raw = s_candidate.get("rawStreamURL")
+            c_tier = "atmos" if s_candidate["id"].startswith("atmos_") else "hires"
+            if c_raw:
+                threading.Thread(target=transcode_to_quality, args=(c_raw, c_id, c_tier), daemon=True).start()
 
     return songs
 
