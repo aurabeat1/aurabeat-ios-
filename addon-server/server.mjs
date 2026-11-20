@@ -23,6 +23,12 @@ const bitchord = createBitChordAuth({ hosts });
 const app = express();
 app.use(express.json());
 
+// Request logger to see incoming traffic in real-time
+app.use((req, res, next) => {
+  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.originalUrl || req.url}`);
+  next();
+});
+
 // Load manifest
 const manifestPath = path.join(__dirname, 'manifest.json');
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
