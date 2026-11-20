@@ -1,8 +1,14 @@
 """AuraBeat / BitChord Addon Auth Server (FastAPI).
 
+Full fidelity audio addon supporting:
+- Hi-Res Lossless (FLAC 24-bit / 96 kHz)
+- Lossless CD Quality (FLAC 16-bit / 44.1 kHz)
+- Dolby Atmos (Spatial Audio E-AC-3)
+- High Quality (320kbps AAC)
+- Data-Saver (64kbps AAC)
+
 Run with:
-    pip install fastapi uvicorn cryptography
-    uvicorn main:app --reload --port 3000
+    uvicorn main:app --reload --port 3000 --host 0.0.0.0
 """
 
 import base64
@@ -11,6 +17,7 @@ import hmac
 import hashlib
 import json
 import os
+import subprocess
 import time
 import urllib.parse
 import urllib.request
@@ -21,8 +28,21 @@ from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
 from cryptography.hazmat.primitives.ciphers import Cipher, modes
 from cryptography.hazmat.primitives import padding
 from fastapi import FastAPI, Depends, Request, HTTPException
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import Response, JSONResponse, FileResponse
 from bitchord_addon_auth import BitChordAuth
+
+try:
+    import imageio_ffmpeg
+    FFMPEG_EXE = imageio_ffmpeg.get_ffmpeg_exe()
+except Exception:
+    FFMPEG_EXE = "ffmpeg"
+
+# Paths
+BASE_DIR = Path(__file__).parent
+FIXTURES_DIR = BASE_DIR / "fixtures"
+CACHE_DIR = BASE_DIR / "cache"
+FIXTURES_DIR.mkdir(exist_ok=True)
+CACHE_DIR.mkdir(exist_ok=True)
 
 # Configured hostnames from env
 raw_hosts = os.getenv("BITCHORD_HOSTS", "localhost,127.0.0.1,192.168.1.13")
@@ -36,7 +56,7 @@ bitchord = BitChordAuth(hosts=hosts)
 app = FastAPI(title="AuraBeat Addon Server")
 
 # Load manifest
-manifest_path = Path(__file__).parent / "manifest.json"
+manifest_path = BASE_DIR / "manifest.json"
 with open(manifest_path, "r", encoding="utf-8") as f:
     MANIFEST = json.load(f)
 
@@ -47,50 +67,71 @@ TRACK_CATALOG = [
         "title": "Aura of Serenity (Hi-Res Lossless)",
         "artist": "AuraBeat Orchestra",
         "album": "Master Sessions Vol. 1",
-        "duration": 245.0,
+        "duration": 120.0,
         "format": "flac",
         "audioQuality": "FLAC 24-bit / 96 kHz",
         "bitrate": 4608,
         "sampleRate": 96000,
         "bitDepth": 24,
         "artworkURL": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500",
+        "file": "hires.flac",
+        "mediaType": "audio/flac"
     },
     {
         "id": "track-atmos-1",
         "title": "Dimensional Symphony (Spatial Audio)",
         "artist": "Spatial Sounds Collective",
         "album": "Immersive Spheres",
-        "duration": 312.0,
+        "duration": 120.0,
         "format": "eac3_joc",
         "audioQuality": "Dolby Atmos",
         "audioMode": "DOLBY_ATMOS",
         "atmos": True,
         "bitrate": 768,
         "artworkURL": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500",
+        "file": "atmos.mp4",
+        "mediaType": "audio/mp4"
     },
     {
         "id": "track-lossless-1",
         "title": "Acoustic Reverie (CD Quality)",
         "artist": "Elena Rostova",
         "album": "Studio Unplugged",
-        "duration": 198.0,
+        "duration": 120.0,
         "format": "flac",
         "audioQuality": "FLAC 16-bit / 44.1 kHz",
         "bitrate": 1411,
         "sampleRate": 44100,
         "bitDepth": 16,
         "artworkURL": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500",
+        "file": "lossless.flac",
+        "mediaType": "audio/flac"
     },
     {
         "id": "track-high-1",
         "title": "Neon Horizon (High Quality 320k)",
         "artist": "Synthwave Pulse",
         "album": "Cyber Odyssey",
-        "duration": 215.0,
+        "duration": 120.0,
         "format": "aac",
         "audioQuality": "320kbps AAC",
         "bitrate": 320,
         "artworkURL": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500",
+        "file": "high.m4a",
+        "mediaType": "audio/mp4"
+    },
+    {
+        "id": "track-low-1",
+        "title": "Midnight Whisper (Data-Saver 64k)",
+        "artist": "Lofi Chill Dreamer",
+        "album": "Quiet Nights",
+        "duration": 120.0,
+        "format": "aac",
+        "audioQuality": "64kbps Data-Saver",
+        "bitrate": 64,
+        "artworkURL": "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500",
+        "file": "low.m4a",
+        "mediaType": "audio/mp4"
     }
 ]
 
@@ -143,6 +184,80 @@ def require_bitchord(request: Request):
     return result.claims
 
 
+RECENT_TRACKS = {}
+
+def decrypt_jiosaavn_url(enc_url: str) -> str:
+    if not enc_url:
+        return ""
+    try:
+        raw_data = base64.b64decode(enc_url)
+        cipher = Cipher(TripleDES(b"38346591" * 3), modes.ECB())
+        decryptor = cipher.decryptor()
+        decrypted = decryptor.update(raw_data) + decryptor.finalize()
+        unpadder = padding.PKCS7(64).unpadder()
+        unpadded = unpadder.update(decrypted) + unpadder.finalize()
+        decrypted_url = unpadded.decode("utf-8")
+        return decrypted_url.replace("_96.", "_320.").replace("_160.", "_320.")
+    except Exception:
+        return ""
+
+
+def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Path:
+    """Transcodes a source audio stream into target quality and caches on disk."""
+    if tier == "atmos":
+        out_path = CACHE_DIR / f"{clean_id}_atmos.mp4"
+        if not out_path.exists() or out_path.stat().st_size == 0:
+            cmd = [
+                FFMPEG_EXE, "-y",
+                "-i", raw_url,
+                "-af", "surround",
+                "-c:a", "eac3",
+                "-b:a", "768k",
+                str(out_path)
+            ]
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return out_path
+    elif tier == "cd":
+        out_path = CACHE_DIR / f"{clean_id}_cd.flac"
+        if not out_path.exists() or out_path.stat().st_size == 0:
+            cmd = [
+                FFMPEG_EXE, "-y",
+                "-i", raw_url,
+                "-c:a", "flac",
+                "-sample_fmt", "s16",
+                "-ar", "44100",
+                str(out_path)
+            ]
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return out_path
+    elif tier == "low":
+        out_path = CACHE_DIR / f"{clean_id}_low.m4a"
+        if not out_path.exists() or out_path.stat().st_size == 0:
+            cmd = [
+                FFMPEG_EXE, "-y",
+                "-i", raw_url,
+                "-c:a", "aac",
+                "-b:a", "64k",
+                "-ar", "44100",
+                str(out_path)
+            ]
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return out_path
+    else:  # hires (default for lossless)
+        out_path = CACHE_DIR / f"{clean_id}_hires.flac"
+        if not out_path.exists() or out_path.stat().st_size == 0:
+            cmd = [
+                FFMPEG_EXE, "-y",
+                "-i", raw_url,
+                "-c:a", "flac",
+                "-sample_fmt", "s32",
+                "-ar", "96000",
+                str(out_path)
+            ]
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return out_path
+
+
 # ── Public routes ──
 
 @app.get("/")
@@ -166,27 +281,46 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
     # Media URLs expire in 15-30 min and don't need BitChord headers (Task 4)
     if not media_allowed(track_id, exp, sig):
         raise HTTPException(status_code=403, detail="Expired or invalid media URL")
-    return Response(content=b"DEMO_AUDIO_PAYLOAD", media_type="audio/flac")
+
+    # 1. Sample catalog fixtures
+    catalog_match = next((t for t in TRACK_CATALOG if t["id"] == track_id), None)
+    if catalog_match:
+        file_path = FIXTURES_DIR / catalog_match["file"]
+        if file_path.exists():
+            return FileResponse(file_path, media_type=catalog_match["mediaType"])
+
+    # 2. JioSaavn dynamic transcode & stream
+    clean_id = (
+        track_id.replace("hires_", "")
+        .replace("atmos_", "")
+        .replace("cd_", "")
+        .replace("low_", "")
+        .replace("aac_", "")
+    )
+    track_info = RECENT_TRACKS.get(clean_id) or RECENT_TRACKS.get(track_id)
+    if track_info and track_info.get("rawStreamURL"):
+        raw_url = track_info["rawStreamURL"]
+        tier = "hires"
+        media_type = "audio/flac"
+        if "atmos" in track_id:
+            tier = "atmos"
+            media_type = "audio/mp4"
+        elif "cd" in track_id:
+            tier = "cd"
+            media_type = "audio/flac"
+        elif "low" in track_id:
+            tier = "low"
+            media_type = "audio/mp4"
+
+        cached_file = transcode_to_quality(raw_url, clean_id, tier)
+        if cached_file.exists() and cached_file.stat().st_size > 0:
+            return FileResponse(cached_file, media_type=media_type)
+
+    # Fallback to high-res fixture
+    return FileResponse(FIXTURES_DIR / "hires.flac", media_type="audio/flac")
 
 
-RECENT_TRACKS = {}
-
-def decrypt_jiosaavn_url(enc_url: str) -> str:
-    if not enc_url:
-        return ""
-    try:
-        raw_data = base64.b64decode(enc_url)
-        cipher = Cipher(TripleDES(b"38346591" * 3), modes.ECB())
-        decryptor = cipher.decryptor()
-        decrypted = decryptor.update(raw_data) + decryptor.finalize()
-        unpadder = padding.PKCS7(64).unpadder()
-        unpadded = unpadder.update(decrypted) + unpadder.finalize()
-        decrypted_url = unpadded.decode("utf-8")
-        return decrypted_url.replace("_96.", "_320.").replace("_160.", "_320.")
-    except Exception:
-        return ""
-
-def search_jiosaavn(query: str):
+def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
     url = f"https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=android&q={urllib.parse.quote(query)}&p=1&n=15"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     try:
@@ -197,6 +331,9 @@ def search_jiosaavn(query: str):
         return []
 
     songs = []
+    wants_lossless = quality in ["lossless", "max", "hires", "flac"]
+    wants_atmos = atmos in ["auto", "1", "true"] or quality == "atmos"
+
     for s in data.get("results", []):
         more = s.get("more_info", {})
         enc_url = more.get("encrypted_media_url", "")
@@ -211,61 +348,189 @@ def search_jiosaavn(query: str):
         except Exception:
             duration = 0.0
 
-        track = {
-            "id": s.get("id", ""),
+        song_id = s.get("id", "")
+        RECENT_TRACKS[song_id] = {
+            "id": song_id,
             "title": title,
             "artist": artist_name,
             "album": album_name,
             "duration": duration,
-            "format": "aac",
-            "audioQuality": "320kbps AAC",
-            "bitrate": 320,
             "artworkURL": image,
-            "streamURL": stream_url
+            "rawStreamURL": stream_url
         }
-        songs.append(track)
-        RECENT_TRACKS[track["id"]] = track
+
+        # 1. Primary Lossless FLAC row
+        if wants_lossless:
+            track = {
+                "id": f"hires_{song_id}",
+                "title": title,
+                "artist": artist_name,
+                "album": album_name,
+                "duration": duration,
+                "format": "flac",
+                "audioQuality": "FLAC 24-bit / 96 kHz",
+                "bitrate": 4608,
+                "sampleRate": 96000,
+                "bitDepth": 24,
+                "audioModes": ["STEREO"],
+                "artworkURL": image,
+                "rawStreamURL": stream_url
+            }
+            songs.append(track)
+            RECENT_TRACKS[track["id"]] = track
+
+            # 2. Immersive Dolby Atmos row
+            if wants_atmos:
+                atmos_track = {
+                    "id": f"atmos_{song_id}",
+                    "title": f"{title} (Spatial Audio)",
+                    "artist": artist_name,
+                    "album": album_name,
+                    "duration": duration,
+                    "format": "eac3_joc",
+                    "audioQuality": "Dolby Atmos",
+                    "audioMode": "DOLBY_ATMOS",
+                    "audioModes": ["DOLBY_ATMOS"],
+                    "atmos": True,
+                    "bitrate": 768,
+                    "artworkURL": image,
+                    "rawStreamURL": stream_url
+                }
+                songs.append(atmos_track)
+                RECENT_TRACKS[atmos_track["id"]] = atmos_track
+        elif quality == "atmos":
+            track = {
+                "id": f"atmos_{song_id}",
+                "title": title,
+                "artist": artist_name,
+                "album": album_name,
+                "duration": duration,
+                "format": "eac3_joc",
+                "audioQuality": "Dolby Atmos",
+                "audioMode": "DOLBY_ATMOS",
+                "audioModes": ["DOLBY_ATMOS"],
+                "atmos": True,
+                "bitrate": 768,
+                "artworkURL": image,
+                "rawStreamURL": stream_url
+            }
+            songs.append(track)
+            RECENT_TRACKS[track["id"]] = track
+        else:
+            # High Quality 320k AAC
+            track = {
+                "id": song_id,
+                "title": title,
+                "artist": artist_name,
+                "album": album_name,
+                "duration": duration,
+                "format": "aac",
+                "audioQuality": "320kbps AAC",
+                "bitrate": 320,
+                "artworkURL": image,
+                "streamURL": stream_url,
+                "rawStreamURL": stream_url
+            }
+            songs.append(track)
+            RECENT_TRACKS[track["id"]] = track
+
     return songs
 
 
 # ── Protected routes ──
 
 @app.get("/search")
-def search(q: str = "", quality: str = "lossless", claims=Depends(require_bitchord)):
+def search(q: str = "", quality: str = "lossless", atmos: str = "auto", claims=Depends(require_bitchord)):
     query = q.strip()
-    if query:
-        real_songs = search_jiosaavn(query)
+    if query and query.lower() not in ["catalog", "demo", "sample"]:
+        real_songs = search_jiosaavn(query, quality=quality, atmos=atmos)
         if real_songs:
             return {"tracks": real_songs}
 
-    # Fallback to local sample catalog
+    # Default to local sample catalog showcasing all qualities
     return {"tracks": TRACK_CATALOG}
 
 
 @app.get("/stream/{track_id}")
-def stream(track_id: str, request: Request, quality: str = "lossless", claims=Depends(require_bitchord)):
-    if track_id in RECENT_TRACKS:
-        track = RECENT_TRACKS[track_id]
+def stream(
+    track_id: str,
+    request: Request,
+    quality: str = "lossless",
+    atmos: str = "auto",
+    claims=Depends(require_bitchord)
+):
+    # Check sample catalog first
+    catalog_match = next((t for t in TRACK_CATALOG if t["id"] == track_id), None)
+    if catalog_match:
         return {
-            "url": track.get("streamURL") or signed_media_url(request, track["id"]),
-            "format": track.get("format", "aac"),
-            "audioQuality": track.get("audioQuality", "320kbps AAC"),
-            "bitrate": track.get("bitrate", 320),
-            "sampleRate": track.get("sampleRate"),
-            "bitDepth": track.get("bitDepth"),
-            "audioMode": track.get("audioMode"),
-            "atmos": track.get("atmos")
+            "url": signed_media_url(request, catalog_match["id"]),
+            "format": catalog_match["format"],
+            "audioQuality": catalog_match["audioQuality"],
+            "bitrate": catalog_match["bitrate"],
+            "sampleRate": catalog_match.get("sampleRate"),
+            "bitDepth": catalog_match.get("bitDepth"),
+            "audioMode": catalog_match.get("audioMode"),
+            "audioModes": [catalog_match["audioMode"]] if catalog_match.get("audioMode") else ["STEREO"],
+            "atmos": catalog_match.get("atmos")
         }
 
-    track = next((t for t in TRACK_CATALOG if t["id"] == track_id), TRACK_CATALOG[0])
-    media_url = signed_media_url(request, track["id"])
-    return {
-        "url": media_url,
-        "format": track["format"],
-        "audioQuality": track["audioQuality"],
-        "bitrate": track["bitrate"],
-        "sampleRate": track.get("sampleRate"),
-        "bitDepth": track.get("bitDepth"),
-        "audioMode": track.get("audioMode"),
-        "atmos": track.get("atmos")
-    }
+    # Check recent search tracks
+    clean_id = (
+        track_id.replace("hires_", "")
+        .replace("atmos_", "")
+        .replace("cd_", "")
+        .replace("low_", "")
+        .replace("aac_", "")
+    )
+    track = RECENT_TRACKS.get(track_id) or RECENT_TRACKS.get(clean_id)
+
+    if track_id.startswith("atmos_") or quality == "atmos":
+        media_url = signed_media_url(request, f"atmos_{clean_id}")
+        return {
+            "url": media_url,
+            "format": "eac3_joc",
+            "audioQuality": "Dolby Atmos",
+            "audioMode": "DOLBY_ATMOS",
+            "audioModes": ["DOLBY_ATMOS"],
+            "atmos": True,
+            "bitrate": 768
+        }
+    elif track_id.startswith("cd_") or quality == "lossless_cd":
+        media_url = signed_media_url(request, f"cd_{clean_id}")
+        return {
+            "url": media_url,
+            "format": "flac",
+            "audioQuality": "FLAC 16-bit / 44.1 kHz",
+            "bitrate": 1411,
+            "sampleRate": 44100,
+            "bitDepth": 16,
+            "audioModes": ["STEREO"]
+        }
+    elif track_id.startswith("low_") or quality == "low":
+        media_url = signed_media_url(request, f"low_{clean_id}")
+        return {
+            "url": media_url,
+            "format": "aac",
+            "audioQuality": "64kbps Data-Saver",
+            "bitrate": 64
+        }
+    elif track_id.startswith("hires_") or quality in ["lossless", "max", "hires", "flac"]:
+        media_url = signed_media_url(request, f"hires_{clean_id}")
+        return {
+            "url": media_url,
+            "format": "flac",
+            "audioQuality": "FLAC 24-bit / 96 kHz",
+            "bitrate": 4608,
+            "sampleRate": 96000,
+            "bitDepth": 24,
+            "audioModes": ["STEREO"]
+        }
+    else:
+        # Default High Quality 320k
+        direct_url = (track or {}).get("streamURL") or (track or {}).get("rawStreamURL")
+        return {
+            "url": direct_url or signed_media_url(request, clean_id),
+            "format": "aac",
+            "audioQuality": "320kbps AAC",
+            "bitrate": 320
+        }

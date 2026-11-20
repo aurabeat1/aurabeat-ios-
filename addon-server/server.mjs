@@ -100,6 +100,17 @@ const TRACK_CATALOG = [
     audioQuality: '320kbps AAC',
     bitrate: 320,
     artwork: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500',
+  },
+  {
+    id: 'track-low-1',
+    title: 'Midnight Whisper (Data-Saver 64k)',
+    artist: 'Lofi Chill Dreamer',
+    album: 'Quiet Nights',
+    duration: 120.0,
+    format: 'aac',
+    audioQuality: '64kbps Data-Saver',
+    bitrate: 64,
+    artwork: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500',
   }
 ];
 
@@ -133,7 +144,29 @@ app.get('/media/:id', (req, res) => {
     return res.status(403).json({ error: 'forbidden', message: 'Media URL has expired or signature is invalid' });
   }
 
-  // Stream audio (or proxy/redirect to storage CDN)
+  const fileMap = {
+    'track-hires-1': { file: 'hires.flac', type: 'audio/flac' },
+    'track-lossless-1': { file: 'lossless.flac', type: 'audio/flac' },
+    'track-atmos-1': { file: 'atmos.mp4', type: 'audio/mp4' },
+    'track-high-1': { file: 'high.m4a', type: 'audio/mp4' },
+    'track-low-1': { file: 'low.m4a', type: 'audio/mp4' },
+  };
+
+  const match = fileMap[id];
+  if (match) {
+    const fixturePath = path.join(__dirname, 'fixtures', match.file);
+    if (fs.existsSync(fixturePath)) {
+      res.setHeader('Content-Type', match.type);
+      return res.sendFile(fixturePath);
+    }
+  }
+
+  const defaultPath = path.join(__dirname, 'fixtures', 'hires.flac');
+  if (fs.existsSync(defaultPath)) {
+    res.setHeader('Content-Type', 'audio/flac');
+    return res.sendFile(defaultPath);
+  }
+
   res.setHeader('Content-Type', 'audio/flac');
   res.setHeader('Accept-Ranges', 'bytes');
   res.send(Buffer.from('DEMO_AUDIO_STREAM_PAYLOAD'));
