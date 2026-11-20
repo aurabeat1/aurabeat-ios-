@@ -19,6 +19,7 @@ import json
 import os
 import re
 import subprocess
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -277,6 +278,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             tmp_path = CACHE_DIR / f"{clean_id}_atmos_{os.getpid()}_{time.time_ns()}.tmp.mp4"
             cmd = [
                 FFMPEG_EXE, "-y",
+                "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "2",
                 "-i", raw_url,
                 "-c:a", "eac3",
                 "-b:a", "768k",
@@ -298,6 +300,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             tmp_path = CACHE_DIR / f"{clean_id}_cd_{os.getpid()}_{time.time_ns()}.tmp.flac"
             cmd = [
                 FFMPEG_EXE, "-y",
+                "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "2",
                 "-i", raw_url,
                 "-c:a", "flac",
                 "-sample_fmt", "s16",
@@ -319,6 +322,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             tmp_path = CACHE_DIR / f"{clean_id}_low_{os.getpid()}_{time.time_ns()}.tmp.m4a"
             cmd = [
                 FFMPEG_EXE, "-y",
+                "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "2",
                 "-i", raw_url,
                 "-c:a", "aac",
                 "-b:a", "64k",
@@ -340,6 +344,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             tmp_path = CACHE_DIR / f"{clean_id}_hires_{os.getpid()}_{time.time_ns()}.tmp.flac"
             cmd = [
                 FFMPEG_EXE, "-y",
+                "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "2",
                 "-i", raw_url,
                 "-c:a", "flac",
                 "-sample_fmt", "s32",
@@ -620,22 +625,40 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
         raw_url = track_info["rawStreamURL"]
         tier = "hires"
         media_type = "audio/flac"
+        target_name = f"{clean_id}_hires.flac"
         if "atmos" in track_id:
             tier = "atmos"
             media_type = "audio/mp4"
+            target_name = f"{clean_id}_atmos.mp4"
         elif "cd" in track_id:
             tier = "cd"
             media_type = "audio/flac"
+            target_name = f"{clean_id}_cd.flac"
         elif "low" in track_id:
             tier = "low"
             media_type = "audio/mp4"
+            target_name = f"{clean_id}_low.m4a"
 
-        cached_file = transcode_to_quality(raw_url, clean_id, tier)
-        if cached_file and cached_file.exists() and cached_file.stat().st_size > 1000:
+        cached_file = CACHE_DIR / target_name
+        if cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
-        else:
-            # Bulletproof fallback: redirect directly to JioSaavn CDN audio stream so playback never fails
-            return RedirectResponse(url=raw_url, status_code=307)
+
+        # Trigger transcode in background if not already started
+        threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, tier), daemon=True).start()
+
+        # Poll up to 2.5s for fast delivery
+        t0 = time.time()
+        while time.time() - t0 < 2.5:
+            if cached_file.exists() and cached_file.stat().st_size > 1000:
+                return FileResponse(cached_file, media_type=media_type)
+            time.sleep(0.15)
+
+        if cached_file.exists() and cached_file.stat().st_size > 1000:
+            return FileResponse(cached_file, media_type=media_type)
+
+        # Ultra-fast fallback: Redirect directly to JioSaavn CDN audio stream
+        # so firstBytesArrive never times out in AuraBeat!
+        return RedirectResponse(url=raw_url, status_code=307)
 
     # 3. Fallback to fixture or 404
     hires_fix = FIXTURES_DIR / "hires.flac"
@@ -692,8 +715,31 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
         enc_url = more.get("encrypted_media_url", "")
         stream_url = decrypt_jiosaavn_url(enc_url)
         title = html.unescape(s.get("title", ""))
-        artists_list = more.get("artistMap", {}).get("primary_artists", [])
-        artist_name = html.unescape(artists_list[0].get("name", "")) if artists_list else ""
+
+        # Comprehensive artist list so TrackMatcher.sharesArtist matches all collaborators
+        artists = []
+        artist_map = more.get("artistMap", {})
+        if isinstance(artist_map.get("primary_artists"), list):
+            artists.extend([a.get("name") for a in artist_map["primary_artists"] if a.get("name")])
+        if isinstance(artist_map.get("featured_artists"), list):
+            artists.extend([a.get("name") for a in artist_map["featured_artists"] if a.get("name")])
+        if isinstance(artist_map.get("artists"), list):
+            artists.extend([a.get("name") for a in artist_map["artists"] if a.get("name")])
+        if not artists and more.get("primary_artists"):
+            artists.append(more["primary_artists"])
+        if not artists and more.get("singers"):
+            artists.append(more["singers"])
+        if not artists and s.get("subtitle"):
+            artists.append(s["subtitle"])
+
+        all_artists = []
+        for a in artists:
+            for part in str(a).split(","):
+                p = html.unescape(part).strip()
+                if p and p not in all_artists:
+                    all_artists.append(p)
+        artist_name = ", ".join(all_artists) if all_artists else ""
+
         album_name = html.unescape(more.get("album", ""))
         image = s.get("image", "").replace("150x150", "500x500")
         try:
@@ -716,7 +762,7 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
         if wants_atmos:
             atmos_track = {
                 "id": f"atmos_{song_id}",
-                "title": f"{title} (Spatial Audio)",
+                "title": title,
                 "artist": artist_name,
                 "album": album_name,
                 "duration": duration,
@@ -812,6 +858,17 @@ def stream(
     track = RECENT_TRACKS.get(track_id) or RECENT_TRACKS.get(clean_id)
     if not track:
         track = fetch_jiosaavn_track(clean_id)
+
+    raw_url = (track or {}).get("rawStreamURL")
+    if raw_url:
+        bg_tier = "hires"
+        if track_id.startswith("atmos_") or (quality == "atmos" and not track_id.startswith("hires_")):
+            bg_tier = "atmos"
+        elif track_id.startswith("cd_") or quality == "lossless_cd":
+            bg_tier = "cd"
+        elif track_id.startswith("low_") or quality == "low":
+            bg_tier = "low"
+        threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, bg_tier), daemon=True).start()
 
     if track_id.startswith("atmos_") or (quality == "atmos" and not track_id.startswith("hires_")):
         media_url = signed_media_url(request, f"atmos_{clean_id}")
