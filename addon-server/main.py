@@ -289,6 +289,7 @@ def decrypt_jiosaavn_url(enc_url: str) -> str:
 
 
 ACTIVE_TRANSCODES = set()
+TRANSCODE_SEMAPHORE = threading.Semaphore(1)
 
 def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Path]:
     """Transcodes a source audio stream into target quality and caches on disk."""
@@ -364,7 +365,10 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
                 str(tmp_path)
             ]
 
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=25)
+        # Acquire semaphore so at most 1 ffmpeg process runs at full CPU speed
+        with TRANSCODE_SEMAPHORE:
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=25)
+
         duration = round((time.time() - t_start) * 1000, 1)
         log_entry = {
             "time": time.strftime("%H:%M:%S"),
@@ -697,18 +701,17 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
         # Trigger transcode in background if not already started
         threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, tier), daemon=True).start()
 
-        # Fast polling: check every 30ms up to 2.2 seconds
-        # With local download & fast multi-threaded ffmpeg (~1.5s), this delivers genuine FLAC / Atmos without stalling
+        # Fast polling: up to 0.5s for immediate responsiveness
         t0 = time.time()
-        while time.time() - t0 < 2.2:
+        while time.time() - t0 < 0.5:
             if cached_file.exists() and cached_file.stat().st_size > 1000:
                 return FileResponse(cached_file, media_type=media_type)
-            time.sleep(0.03)
+            time.sleep(0.02)
 
         if cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
 
-        # Immediate smooth fallback: redirect so player starts audio instantly without stalling
+        # Immediate smooth fallback: redirect so player starts audio instantly in <0.5s without stalling!
         return RedirectResponse(url=raw_url, status_code=307)
 
     # 3. Fallback to fixture or 404
@@ -915,14 +918,14 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             songs.append(track)
             RECENT_TRACKS[track["id"]] = track
 
-    # Pre-transcode top candidates in background so audio is immediately ready on tap
+    # Pre-transcode only the #1 top candidate in background so CPU is never starved
     if songs:
-        for s_candidate in songs[:4]:
-            c_id = s_candidate["id"].replace("atmos_", "").replace("hires_", "")
-            c_raw = s_candidate.get("rawStreamURL")
-            c_tier = "atmos" if s_candidate["id"].startswith("atmos_") else "hires"
-            if c_raw:
-                threading.Thread(target=transcode_to_quality, args=(c_raw, c_id, c_tier), daemon=True).start()
+        top = songs[0]
+        c_id = top["id"].replace("atmos_", "").replace("hires_", "")
+        c_raw = top.get("rawStreamURL")
+        c_tier = "atmos" if top["id"].startswith("atmos_") else "hires"
+        if c_raw:
+            threading.Thread(target=transcode_to_quality, args=(c_raw, c_id, c_tier), daemon=True).start()
 
     return songs
 
