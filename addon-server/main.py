@@ -45,7 +45,7 @@ FIXTURES_DIR.mkdir(exist_ok=True)
 CACHE_DIR.mkdir(exist_ok=True)
 
 # Configured hostnames from env
-raw_hosts = os.getenv("BITCHORD_HOSTS", "localhost,127.0.0.1,192.168.1.13")
+raw_hosts = os.getenv("BITCHORD_HOSTS", "localhost,127.0.0.1,192.168.1.13,aurabeat-ios.onrender.com")
 hosts = [h.strip() for h in raw_hosts.split(",") if h.strip()]
 MEDIA_SECRET = os.getenv("MEDIA_SECRET", "aurabeat-addon-secret-key-change-in-production").encode()
 AUTH_MODE = os.getenv("BITCHORD_AUTH_MODE", "log")
