@@ -11,7 +11,7 @@ const MEDIA_SECRET = process.env.MEDIA_SECRET || 'aurabeat-addon-secret-key-chan
 const AUTH_MODE = process.env.BITCHORD_AUTH_MODE || 'enforce'; // 'enforce' or 'log'
 
 // Read configured hostnames from env (comma-separated), fallback to localhost
-const rawHosts = process.env.BITCHORD_HOSTS || 'localhost,127.0.0.1';
+const rawHosts = process.env.BITCHORD_HOSTS || 'localhost,127.0.0.1,192.168.1.13';
 const hosts = rawHosts.split(',').map(h => h.trim()).filter(Boolean);
 
 console.log(`[AuraBeat Addon] Configured hosts: ${JSON.stringify(hosts)}`);
