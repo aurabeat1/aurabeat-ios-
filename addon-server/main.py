@@ -704,41 +704,55 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
 
 
 @app.get("/debug")
-def get_debug():
+def get_debug(bench: int = 0):
     test_res = None
-    try:
-        raw_test = "https://aac.saavncdn.com/893/0de03424c2750337d2a201e4c8689597_320.mp4"
-        test_out = CACHE_DIR / f"debug_{int(time.time())}.flac"
-        cmd = [
-            FFMPEG_EXE, "-y",
-            "-t", "3",
-            "-i", raw_test,
-            "-c:a", "flac",
-            "-sample_fmt", "s32",
-            "-bits_per_raw_sample", "24",
-            "-ar", "96000",
-            "-compression_level", "0",
-            str(test_out)
-        ]
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=15)
-        test_res = {
-            "returncode": res.returncode,
-            "cmd": " ".join(cmd),
-            "stderr": res.stderr[-500:],
-            "file_size": test_out.stat().st_size if test_out.exists() else 0
-        }
-        if test_out.exists():
-            test_out.unlink(missing_ok=True)
-    except Exception as e:
-        test_res = {"error": str(e)}
+    bench_res = None
+    raw_test = "https://aac.saavncdn.com/893/0de03424c2750337d2a201e4c8689597_320.mp4"
+
+    if bench:
+        b_timings = {}
+        # 1. Measure direct urllib download
+        t0 = time.time()
+        tmp_in = CACHE_DIR / "bench_in.mp4"
+        try:
+            req = urllib.request.Request(raw_test, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=10) as r, open(tmp_in, "wb") as f:
+                f.write(r.read())
+            b_timings["download_sec"] = round(time.time() - t0, 3)
+            b_timings["in_size_mb"] = round(tmp_in.stat().st_size / 1024 / 1024, 2)
+        except Exception as e:
+            b_timings["download_error"] = str(e)
+
+        # 2. Local transcode FLAC 24-bit native rate
+        if tmp_in.exists():
+            t0 = time.time()
+            tmp_native = CACHE_DIR / "bench_native.flac"
+            cmd_nat = [FFMPEG_EXE, "-y", "-i", str(tmp_in), "-c:a", "flac", "-sample_fmt", "s32", "-bits_per_raw_sample", "24", "-compression_level", "0", str(tmp_native)]
+            r_nat = subprocess.run(cmd_nat, capture_output=True, text=True)
+            b_timings["transcode_native_sec"] = round(time.time() - t0, 3)
+            b_timings["native_size_mb"] = round(tmp_native.stat().st_size / 1024 / 1024, 2) if tmp_native.exists() else 0
+            tmp_native.unlink(missing_ok=True)
+
+            # 3. Local transcode FLAC 24-bit 96kHz
+            t0 = time.time()
+            tmp_96k = CACHE_DIR / "bench_96k.flac"
+            cmd_96 = [FFMPEG_EXE, "-y", "-i", str(tmp_in), "-c:a", "flac", "-sample_fmt", "s32", "-bits_per_raw_sample", "24", "-ar", "96000", "-compression_level", "0", str(tmp_96k)]
+            r_96 = subprocess.run(cmd_96, capture_output=True, text=True)
+            b_timings["transcode_96k_sec"] = round(time.time() - t0, 3)
+            b_timings["96k_size_mb"] = round(tmp_96k.stat().st_size / 1024 / 1024, 2) if tmp_96k.exists() else 0
+            tmp_96k.unlink(missing_ok=True)
+
+            tmp_in.unlink(missing_ok=True)
+
+        bench_res = b_timings
 
     return {
         "ffmpeg_exe": FFMPEG_EXE,
         "ffmpeg_exists": os.path.exists(FFMPEG_EXE),
         "cache_dir": str(CACHE_DIR),
         "cache_files": [f.name for f in CACHE_DIR.iterdir()] if CACHE_DIR.exists() else [],
-        "test_transcode": test_res,
-        "transcode_logs": list(reversed(TRANSCODE_LOGS)),
+        "bench": bench_res,
+        "transcode_logs": list(reversed(TRANSCODE_LOGS))[:10],
     }
 
 
