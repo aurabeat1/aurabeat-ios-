@@ -1,0 +1,25 @@
+{
+  "id": "com.aurabeat.addon",
+  "name": "AuraBeat Audio Addon",
+  "version": "1.0.0",
+  "description": "High fidelity audio addon supporting Hi-Res Lossless, Dolby Atmos, and High Quality streams",
+  "resources": [
+    "search",
+    "stream"
+  ],
+  "bitchordAuth": true,
+  "settings": [
+    {
+      "key": "quality",
+      "type": "select",
+      "default": "lossless",
+      "options": [
+        { "value": "lossless", "label": "Hi-Res Lossless (FLAC 24-bit/96kHz)" },
+        { "value": "atmos", "label": "Dolby Atmos (Spatial Audio E-AC-3 JOC)" },
+        { "value": "high", "label": "High Quality (AAC 320 kbps)" },
+        { "value": "medium", "label": "Standard Quality (AAC 256 kbps)" },
+        { "value": "low", "label": "Data-Saver (AAC 128 kbps)" }
+      ]
+    }
+  ]
+}

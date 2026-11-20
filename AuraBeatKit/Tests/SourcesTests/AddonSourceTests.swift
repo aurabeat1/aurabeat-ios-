@@ -703,6 +703,21 @@ final class AddonSourceTests: XCTestCase {
         XCTAssertEqual(again.message, "Test Addon is already added")
         XCTAssertEqual(registry.configs.filter { $0.kind == .addon }.count, 1)
     }
+
+    func testManifestDecodesBitChordAuthFlag() throws {
+        let decoder = JSONDecoder()
+        let withBool = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"a","bitchordAuth":true}"#.utf8))
+        XCTAssertTrue(withBool.bitchordAuth)
+
+        let withString = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"b","bitchordAuth":"true}"#.utf8))
+        XCTAssertTrue(withString.bitchordAuth)
+
+        let withInt = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"c","bitchordAuth":1}"#.utf8))
+        XCTAssertTrue(withInt.bitchordAuth)
+
+        let without = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"d"}"#.utf8))
+        XCTAssertFalse(without.bitchordAuth)
+    }
 }
 
 /// `XCTUnwrap` for an optional produced by an `await`.

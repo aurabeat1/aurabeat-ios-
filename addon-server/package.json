@@ -1,0 +1,13 @@
+{
+  "name": "aurabeat-addon-server",
+  "version": "1.0.0",
+  "description": "BitChord / AuraBeat Addon Server with Addon Auth and Multi-Quality Support",
+  "main": "server.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
