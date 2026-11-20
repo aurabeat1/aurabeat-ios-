@@ -143,11 +143,14 @@ TRACK_CATALOG = [
         "artist": "Spatial Sounds Collective",
         "album": "Immersive Spheres",
         "duration": 120.0,
-        "format": "eac3_joc",
+        "format": "eac3-joc",
+        "codec": "eac3-joc",
         "audioQuality": "Dolby Atmos",
         "audioMode": "DOLBY_ATMOS",
+        "audioModes": ["DOLBY_ATMOS"],
         "atmos": True,
         "bitrate": 768,
+        "sampleRate": 48000,
         "artworkURL": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500",
         "file": "atmos.mp4",
         "mediaType": "audio/mp4"
@@ -275,9 +278,9 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             cmd = [
                 FFMPEG_EXE, "-y",
                 "-i", raw_url,
-                "-af", "surround",
                 "-c:a", "eac3",
-                "-b:a", "640k",
+                "-b:a", "768k",
+                "-ar", "48000",
                 "-movflags", "+faststart",
                 str(tmp_path)
             ]
@@ -677,8 +680,12 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
 
     songs = []
     wants_lossless = quality in ["lossless", "max", "hires", "flac"]
-    # Atmos is only selected if explicitly requested via quality=atmos or query mentions atmos/spatial
-    wants_atmos = (quality == "atmos") or ("atmos" in query.lower()) or ("spatial" in query.lower())
+    wants_atmos = (
+        atmos in ["auto", "1", "true"]
+        or quality == "atmos"
+        or "atmos" in query.lower()
+        or "spatial" in query.lower()
+    )
 
     for s in results:
         more = s.get("more_info", {})
@@ -705,27 +712,31 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             "rawStreamURL": stream_url
         }
 
+        # 1. Immersive Dolby Atmos track
         if wants_atmos:
-            # Dolby Atmos Spatial Audio track
             atmos_track = {
                 "id": f"atmos_{song_id}",
                 "title": f"{title} (Spatial Audio)",
                 "artist": artist_name,
                 "album": album_name,
                 "duration": duration,
-                "format": "eac3_joc",
+                "format": "eac3-joc",
+                "codec": "eac3-joc",
+                "mimeType": "audio/mp4",
                 "audioQuality": "Dolby Atmos",
                 "audioMode": "DOLBY_ATMOS",
                 "audioModes": ["DOLBY_ATMOS"],
                 "atmos": True,
                 "bitrate": 768,
+                "sampleRate": 48000,
                 "artworkURL": image,
                 "rawStreamURL": stream_url
             }
             songs.append(atmos_track)
             RECENT_TRACKS[atmos_track["id"]] = atmos_track
-        elif wants_lossless:
-            # Hi-Res Lossless FLAC 24-bit / 96 kHz (Max Quality)
+
+        # 2. Hi-Res Lossless FLAC track
+        if wants_lossless or not wants_atmos:
             track = {
                 "id": f"hires_{song_id}",
                 "title": title,
@@ -733,29 +744,14 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
                 "album": album_name,
                 "duration": duration,
                 "format": "flac",
+                "codec": "flac",
+                "mimeType": "audio/flac",
                 "audioQuality": "FLAC 24-bit / 96 kHz",
                 "bitrate": 4608,
                 "sampleRate": 96000,
                 "bitDepth": 24,
                 "audioModes": ["STEREO"],
                 "artworkURL": image,
-                "rawStreamURL": stream_url
-            }
-            songs.append(track)
-            RECENT_TRACKS[track["id"]] = track
-        else:
-            # High Quality 320k AAC
-            track = {
-                "id": song_id,
-                "title": title,
-                "artist": artist_name,
-                "album": album_name,
-                "duration": duration,
-                "format": "aac",
-                "audioQuality": "320kbps AAC",
-                "bitrate": 320,
-                "artworkURL": image,
-                "streamURL": stream_url,
                 "rawStreamURL": stream_url
             }
             songs.append(track)
@@ -794,6 +790,8 @@ def stream(
         return {
             "url": signed_media_url(request, catalog_match["id"]),
             "format": catalog_match["format"],
+            "codec": catalog_match.get("codec", catalog_match["format"]),
+            "mimeType": catalog_match.get("mediaType"),
             "audioQuality": catalog_match["audioQuality"],
             "bitrate": catalog_match["bitrate"],
             "sampleRate": catalog_match.get("sampleRate"),
@@ -819,18 +817,23 @@ def stream(
         media_url = signed_media_url(request, f"atmos_{clean_id}")
         return {
             "url": media_url,
-            "format": "eac3_joc",
+            "format": "eac3-joc",
+            "codec": "eac3-joc",
+            "mimeType": "audio/mp4",
             "audioQuality": "Dolby Atmos",
             "audioMode": "DOLBY_ATMOS",
             "audioModes": ["DOLBY_ATMOS"],
             "atmos": True,
-            "bitrate": 768
+            "bitrate": 768,
+            "sampleRate": 48000
         }
     elif track_id.startswith("cd_") or quality == "lossless_cd":
         media_url = signed_media_url(request, f"cd_{clean_id}")
         return {
             "url": media_url,
             "format": "flac",
+            "codec": "flac",
+            "mimeType": "audio/flac",
             "audioQuality": "FLAC 16-bit / 44.1 kHz",
             "bitrate": 1411,
             "sampleRate": 44100,
@@ -842,6 +845,8 @@ def stream(
         return {
             "url": media_url,
             "format": "aac",
+            "codec": "aac",
+            "mimeType": "audio/mp4",
             "audioQuality": "64kbps Data-Saver",
             "bitrate": 64
         }
@@ -850,6 +855,8 @@ def stream(
         return {
             "url": media_url,
             "format": "flac",
+            "codec": "flac",
+            "mimeType": "audio/flac",
             "audioQuality": "FLAC 24-bit / 96 kHz",
             "bitrate": 4608,
             "sampleRate": 96000,
@@ -862,6 +869,8 @@ def stream(
         return {
             "url": direct_url or signed_media_url(request, clean_id),
             "format": "aac",
+            "codec": "aac",
+            "mimeType": "audio/mp4",
             "audioQuality": "320kbps AAC",
             "bitrate": 320
         }
