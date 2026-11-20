@@ -17,11 +17,10 @@ def main():
             print("[INFO] Server was not configured in Windows startup.")
         return
 
-    # Install
+    # Install using explicit --app-dir
     vbs_content = (
         'Set WshShell = CreateObject("WScript.Shell")\r\n'
-        f'WshShell.CurrentDirectory = "{server_dir}"\r\n'
-        'WshShell.Run "cmd /c python -m uvicorn main:app --port 3000 --host 0.0.0.0", 0, False\r\n'
+        f'WshShell.Run "cmd /c python -m uvicorn main:app --app-dir ""{server_dir}"" --port 3000 --host 0.0.0.0", 0, False\r\n'
     )
 
     with open(target_vbs, "w", encoding="utf-8") as f:
@@ -35,12 +34,6 @@ def main():
     print(" - Runs silently in the background (no open terminal window).")
     print(" - Addon URL: http://192.168.1.13:3000/manifest.json")
     print("-" * 60)
-
-    # Start it now in the background
-    print(" Starting server in background now...")
-    subprocess.Popen(["wscript", str(target_vbs)], shell=True)
-    print(" Server started in background!")
-    print("=" * 60)
 
 if __name__ == "__main__":
     main()
