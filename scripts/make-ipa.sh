@@ -14,6 +14,9 @@ if [ -z "${DEVELOPER_DIR:-}" ]; then
 fi
 cd "$(dirname "$0")/.."
 
+git config --global url."https://github.com/TypeWhisper/onnxruntime-swift-package-manager.git".insteadOf "https://github.com/microsoft/onnxruntime-swift-package-manager" 2>/dev/null || true
+git config --global url."https://github.com/TypeWhisper/onnxruntime-swift-package-manager.git".insteadOf "https://github.com/microsoft/onnxruntime-swift-package-manager.git" 2>/dev/null || true
+
 DERIVED=.derived-release
 xcodebuild build -workspace AuraBeat.xcworkspace -scheme AuraBeat -configuration Release \
   -destination 'generic/platform=iOS' -derivedDataPath "$DERIVED" -jobs "${JOBS:-3}" -quiet \

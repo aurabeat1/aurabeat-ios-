@@ -39,6 +39,11 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
 
+      - name: Configure Git for ONNX Runtime SPM mirror
+        run: |
+          git config --global url."https://github.com/TypeWhisper/onnxruntime-swift-package-manager.git".insteadOf "https://github.com/microsoft/onnxruntime-swift-package-manager"
+          git config --global url."https://github.com/TypeWhisper/onnxruntime-swift-package-manager.git".insteadOf "https://github.com/microsoft/onnxruntime-swift-package-manager.git"
+
       - name: Make scripts executable
         run: chmod +x scripts/*.sh
 
