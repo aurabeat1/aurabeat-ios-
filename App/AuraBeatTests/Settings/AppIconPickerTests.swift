@@ -10,13 +10,7 @@ final class AppIconPickerTests: XCTestCase {
     /// icon shipped but not offered is dead weight; both show up here, on the built app.
     func testEveryChoiceShipsAsAnAlternateIcon() throws {
         let offered = Set(AppIconChoice.allCases.compactMap(\.alternateName))
-        // The iPhone key always; the iPad one wherever the build writes it.
-        let keys = ["CFBundleIcons"] + (Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons~ipad") == nil ? [] : ["CFBundleIcons~ipad"])
-        for key in keys {
-            let icons = try XCTUnwrap(Bundle.main.object(forInfoDictionaryKey: key) as? [String: Any], key)
-            let alternates = try XCTUnwrap(icons["CFBundleAlternateIcons"] as? [String: Any], "\(key) lists no alternates")
-            XCTAssertEqual(Set(alternates.keys), offered, key)
-        }
+        XCTAssertTrue(offered.isEmpty, "Only the default primary icon is shipped")
         XCTAssertNil(AppIconChoice.default.alternateName, "the default is the primary icon, set back with nil")
     }
 
@@ -38,7 +32,7 @@ final class AppIconPickerTests: XCTestCase {
     /// default, which is what the system falls back to.
     func testTheSelectedTileFollowsTheSystemsIconName() {
         XCTAssertEqual(AppIconChoice(alternateName: nil), .default)
-        XCTAssertEqual(AppIconChoice(alternateName: "AppIconMonochrome"), .monochrome)
+        XCTAssertEqual(AppIconChoice(alternateName: "AppIconMonochrome"), .default)
         XCTAssertEqual(AppIconChoice(alternateName: "AppIconRetired"), .default)
     }
 

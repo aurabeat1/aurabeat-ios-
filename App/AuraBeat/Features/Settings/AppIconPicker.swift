@@ -11,18 +11,14 @@ import UIKit
 // mask, and iOS draws one shape, so they have no iOS form. The Neon icons are left out on size:
 // Xcode stores every icon as pre-rendered full-size images, about 6 MB each in the IPA.
 
-/// The home-screen icon choices, in Android's order. The raw value is the icon's file name.
+/// The home-screen icon choices. The raw value is the icon's file name.
 enum AppIconChoice: String, CaseIterable, Identifiable {
     case `default` = "AppIcon"
-    case monochrome = "AppIconMonochrome"
-    case glassDark = "AppIconGlassDark"
-    case glassClear = "AppIconGlassClear"
-    case glassClearDark = "AppIconGlassClearDark"
 
     var id: Self { self }
 
     /// What `setAlternateIconName` takes: nil puts the primary icon back.
-    var alternateName: String? { self == .default ? nil : rawValue }
+    var alternateName: String? { nil }
 
     /// The tile image, rendered in light and dark into the asset catalog: an app icon can't be
     /// loaded as an image at run time.
@@ -31,17 +27,13 @@ enum AppIconChoice: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .default: L10n.appIconDefault
-        case .monochrome: L10n.appIconMonochrome
-        case .glassDark: L10n.appIconLiquidGlassDark
-        case .glassClear: L10n.appIconLiquidGlassClear
-        case .glassClearDark: L10n.appIconLiquidGlassClearDark
         }
     }
 
     /// The choice for the icon the system shows. A name this build doesn't know, from a build
     /// that had another icon, reads as the default, which is also what the system falls back to.
     init(alternateName: String?) {
-        self = alternateName.flatMap(Self.init(rawValue:)) ?? .default
+        self = .default
     }
 }
 
