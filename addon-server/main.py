@@ -28,7 +28,7 @@ from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
 from cryptography.hazmat.primitives.ciphers import Cipher, modes
 from cryptography.hazmat.primitives import padding
 from fastapi import FastAPI, Depends, Request, HTTPException
-from fastapi.responses import Response, JSONResponse, FileResponse
+from fastapi.responses import Response, JSONResponse, FileResponse, HTMLResponse
 from bitchord_addon_auth import BitChordAuth
 
 try:
@@ -348,16 +348,196 @@ def fetch_jiosaavn_track(song_id: str) -> Optional[dict]:
     return None
 
 
+INDEX_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraBeat Audio Addon Server</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #151d30;
+      --border: #233152;
+      --accent: #fa2d48;
+      --text: #ffffff;
+      --subtext: #8fa0c2;
+      --green: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+    .container { max-width: 760px; width: 100%; }
+    .header { text-align: center; margin-bottom: 24px; }
+    .badge-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.15); border: 1px solid var(--green); color: var(--green); padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.5px; }
+    p.subtitle { color: var(--subtext); font-size: 15px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .card h2 { font-size: 17px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .url-box { display: flex; gap: 8px; margin-top: 10px; background: #0c1220; border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; align-items: center; }
+    .url-text { flex: 1; font-family: monospace; font-size: 14px; color: #60a5fa; overflow-x: auto; white-space: nowrap; }
+    button.btn { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 13px; }
+    button.btn:hover { opacity: 0.9; transform: scale(1.02); }
+    .steps { display: grid; gap: 10px; margin-top: 10px; font-size: 14px; color: var(--subtext); }
+    .steps li { margin-left: 20px; }
+    .quality-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+    .q-item { background: #0c1220; border: 1px solid var(--border); padding: 12px; border-radius: 10px; text-align: center; }
+    .q-item .title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    .q-item .detail { font-size: 12px; color: var(--subtext); }
+    .search-box { display: flex; gap: 8px; margin-bottom: 14px; }
+    .search-input { flex: 1; background: #0c1220; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: white; font-size: 14px; outline: none; }
+    .search-input:focus { border-color: var(--accent); }
+    .results { display: grid; gap: 8px; max-height: 350px; overflow-y: auto; }
+    .track-row { display: flex; align-items: center; gap: 12px; background: #0c1220; padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
+    .track-row img { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; }
+    .track-info { flex: 1; min-width: 0; }
+    .track-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-artist { font-size: 12px; color: var(--subtext); }
+    .player-section { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
+    audio { width: 100%; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge-pill"><span class="pulse"></span> Addon Server Online</div>
+      <h1>AuraBeat iOS Audio Addon</h1>
+      <p class="subtitle">Hi-Res Lossless (24-bit / 96 kHz) • Dolby Atmos • High Quality (320 kbps)</p>
+    </div>
+
+    <div class="card">
+      <h2>📱 Connect to AuraBeat on iPhone</h2>
+      <p style="font-size: 14px; color: var(--subtext);">Copy this URL and add it into the AuraBeat app on your iOS device:</p>
+      <div class="url-box">
+        <span class="url-text" id="addonUrl">https://aurabeat-ios.onrender.com/manifest.json</span>
+        <button class="btn" onclick="copyUrl()">Copy URL</button>
+      </div>
+      <ol class="steps" style="margin-top: 14px;">
+        <li>Open the <strong>AuraBeat</strong> app on your iPhone.</li>
+        <li>Go to <strong>Settings</strong> &rarr; <strong>Sources</strong> &rarr; <strong>Add Addon</strong>.</li>
+        <li>Paste <code>https://aurabeat-ios.onrender.com/manifest.json</code> and tap <strong>Add</strong>.</li>
+        <li>Your tracks will now stream in Hi-Res Lossless and Dolby Atmos!</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>🎵 Test Search & Instant Playback</h2>
+      <div class="search-box">
+        <input type="text" id="query" class="search-input" placeholder="Search any song (e.g. Karan Aujla, Shubh, Sidhu Moose Wala)..." onkeydown="if(event.key==='Enter') searchTracks()">
+        <button class="btn" onclick="searchTracks()">Search</button>
+      </div>
+      <div class="results" id="results">
+        <div style="text-align: center; color: var(--subtext); padding: 15px; font-size: 13px;">Type a song above to test the live audio stream.</div>
+      </div>
+      <div class="player-section" id="playerWrap" style="display: none;">
+        <div id="nowPlayingText" style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #60a5fa;"></div>
+        <audio id="audioPlayer" controls></audio>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>⚡ Audio Quality Badges Supported</h2>
+      <div class="quality-grid">
+        <div class="q-item">
+          <div class="title" style="color: #f59e0b;">Hi-Res Lossless</div>
+          <div class="detail">FLAC 24-bit / 96 kHz</div>
+        </div>
+        <div class="q-item">
+          <div class="title" style="color: #a855f7;">Dolby Atmos</div>
+          <div class="detail">Spatial Audio E-AC-3</div>
+        </div>
+        <div class="q-item">
+          <div class="title" style="color: #3b82f6;">High Quality</div>
+          <div class="detail">320kbps AAC Direct</div>
+        </div>
+        <div class="q-item">
+          <div class="title" style="color: #10b981;">Lossless CD</div>
+          <div class="detail">FLAC 16-bit / 44.1 kHz</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function copyUrl() {
+      const url = document.getElementById('addonUrl').innerText;
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Copied Addon URL to clipboard: ' + url);
+      });
+    }
+
+    async function searchTracks() {
+      const q = document.getElementById('query').value.trim();
+      if (!q) return;
+      const resEl = document.getElementById('results');
+      resEl.innerHTML = '<div style="text-align: center; color: var(--subtext); padding: 15px;">Searching...</div>';
+      try {
+        const r = await fetch('/search?q=' + encodeURIComponent(q) + '&quality=lossless&atmos=auto');
+        const data = await r.json();
+        const tracks = data.tracks || [];
+        if (!tracks.length) {
+          resEl.innerHTML = '<div style="text-align: center; color: var(--subtext); padding: 15px;">No tracks found.</div>';
+          return;
+        }
+        resEl.innerHTML = tracks.slice(0, 10).map(t => `
+          <div class="track-row">
+            <img src="${t.artworkURL || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}" alt="art">
+            <div class="track-info">
+              <div class="track-title">${t.title}</div>
+              <div class="track-artist">${t.artist} &bull; <span style="color:#60a5fa">${t.audioQuality || t.format}</span></div>
+            </div>
+            <button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="playTrack('${t.id}', '${encodeURIComponent(t.title)}')">Play</button>
+          </div>
+        `).join('');
+      } catch (e) {
+        resEl.innerHTML = '<div style="text-align: center; color: red; padding: 15px;">Error: ' + e.message + '</div>';
+      }
+    }
+
+    async function playTrack(id, title) {
+      const pWrap = document.getElementById('playerWrap');
+      const player = document.getElementById('audioPlayer');
+      const text = document.getElementById('nowPlayingText');
+      text.innerText = 'Loading: ' + decodeURIComponent(title) + '...';
+      pWrap.style.display = 'block';
+      try {
+        const r = await fetch('/stream/' + id + '?quality=lossless&atmos=auto');
+        const data = await r.json();
+        if (data.url) {
+          player.src = data.url;
+          player.play();
+          text.innerText = 'Now Playing: ' + decodeURIComponent(title) + ' (' + (data.audioQuality || data.format) + ')';
+        } else {
+          text.innerText = 'Failed to resolve stream URL';
+        }
+      } catch (e) {
+        text.innerText = 'Error playing: ' + e.message;
+      }
+    }
+  </script>
+</body>
+</html>
+"""
+
+
 # ── Public routes ──
 
 @app.get("/")
-def get_root():
-    return {
+def get_root(request: Request):
+    accept = request.headers.get("accept", "")
+    ua = request.headers.get("user-agent", "")
+    # If opened in a web browser, serve the interactive HTML dashboard
+    if "text/html" in accept and "AuraBeat" not in ua:
+        return HTMLResponse(content=INDEX_HTML)
+
+    # Return full manifest + status for AuraBeat and API clients
+    payload = {
+        **MANIFEST,
         "status": "online",
         "addon": MANIFEST.get("name"),
-        "version": MANIFEST.get("version"),
         "manifest": "/manifest.json"
     }
+    return JSONResponse(payload, headers={"Access-Control-Allow-Origin": "*"})
 
 
 @app.get("/manifest")
