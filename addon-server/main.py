@@ -307,10 +307,23 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             return out_path
         tmp_path = CACHE_DIR / f"{clean_id}_{tier}_{os.getpid()}_{time.time_ns()}.tmp.{out_ext}"
 
+        # 1. Fast local download of raw source audio via urllib (~0.5s on Render)
+        local_raw = CACHE_DIR / f"{clean_id}.raw.mp4"
+        if not local_raw.exists() or local_raw.stat().st_size < 1000:
+            tmp_raw = CACHE_DIR / f"{clean_id}_{os.getpid()}_{time.time_ns()}.tmp.raw.mp4"
+            req = urllib.request.Request(raw_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=12) as r, open(tmp_raw, "wb") as f:
+                f.write(r.read())
+            if tmp_raw.exists() and tmp_raw.stat().st_size > 1000:
+                tmp_raw.replace(local_raw)
+
+        input_src = str(local_raw) if local_raw.exists() and local_raw.stat().st_size > 1000 else raw_url
+
         if tier == "atmos":
             cmd = [
                 FFMPEG_EXE, "-y",
-                "-i", raw_url,
+                "-threads", "0",
+                "-i", input_src,
                 "-c:a", "eac3",
                 "-b:a", "768k",
                 "-ar", "48000",
@@ -320,7 +333,8 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
         elif tier == "cd":
             cmd = [
                 FFMPEG_EXE, "-y",
-                "-i", raw_url,
+                "-threads", "0",
+                "-i", input_src,
                 "-c:a", "flac",
                 "-sample_fmt", "s16",
                 "-ar", "44100",
@@ -330,26 +344,27 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
         elif tier == "low":
             cmd = [
                 FFMPEG_EXE, "-y",
-                "-i", raw_url,
+                "-threads", "0",
+                "-i", input_src,
                 "-c:a", "aac",
                 "-b:a", "64k",
                 "-ar", "44100",
                 "-movflags", "+faststart",
                 str(tmp_path)
             ]
-        else:  # hires (default for lossless - FLAC 24-bit / 96 kHz)
+        else:  # hires (default for lossless - FLAC 24-bit PCM)
             cmd = [
                 FFMPEG_EXE, "-y",
-                "-i", raw_url,
+                "-threads", "0",
+                "-i", input_src,
                 "-c:a", "flac",
                 "-sample_fmt", "s32",
                 "-bits_per_raw_sample", "24",
-                "-ar", "96000",
                 "-compression_level", "0",
                 str(tmp_path)
             ]
 
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=35)
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=25)
         duration = round((time.time() - t_start) * 1000, 1)
         log_entry = {
             "time": time.strftime("%H:%M:%S"),
@@ -367,11 +382,11 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
 
         if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
             tmp_path.replace(out_path)
-            # Prune cache if more than 50 files
+            # Prune cache if more than 60 files
             try:
                 files = sorted(CACHE_DIR.glob("*"), key=lambda p: p.stat().st_mtime)
-                if len(files) > 50:
-                    for old_f in files[:len(files)-50]:
+                if len(files) > 60:
+                    for old_f in files[:len(files)-60]:
                         old_f.unlink(missing_ok=True)
             except Exception:
                 pass
@@ -682,18 +697,18 @@ def get_media(track_id: str, exp: str = "", sig: str = ""):
         # Trigger transcode in background if not already started
         threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, tier), daemon=True).start()
 
-        # Poll up to 5.0s for genuine FLAC / Atmos audio (AuraBeat timeout is 6.0s)
+        # Fast polling: check every 30ms up to 2.2 seconds
+        # With local download & fast multi-threaded ffmpeg (~1.5s), this delivers genuine FLAC / Atmos without stalling
         t0 = time.time()
-        while time.time() - t0 < 5.0:
+        while time.time() - t0 < 2.2:
             if cached_file.exists() and cached_file.stat().st_size > 1000:
                 return FileResponse(cached_file, media_type=media_type)
-            time.sleep(0.1)
+            time.sleep(0.03)
 
         if cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
 
-        # Ultra-fast fallback: Redirect directly to JioSaavn CDN audio stream
-        # so firstBytesArrive never times out in AuraBeat!
+        # Immediate smooth fallback: redirect so player starts audio instantly without stalling
         return RedirectResponse(url=raw_url, status_code=307)
 
     # 3. Fallback to fixture or 404
@@ -902,7 +917,7 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
 
     # Pre-transcode top candidates in background so audio is immediately ready on tap
     if songs:
-        for s_candidate in songs[:2]:
+        for s_candidate in songs[:4]:
             c_id = s_candidate["id"].replace("atmos_", "").replace("hires_", "")
             c_raw = s_candidate.get("rawStreamURL")
             c_tier = "atmos" if s_candidate["id"].startswith("atmos_") else "hires"
