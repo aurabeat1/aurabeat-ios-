@@ -4,7 +4,7 @@ about: Suggest a change or a feature for the iOS app
 labels: enhancement
 ---
 
-<!-- New features usually land in BitChord for Android first: https://github.com/kushagrasinghx/BitChord -->
+<!-- Describe the feature you would like to see in AuraBeat iOS. -->
 
 **What you want to do**
 Describe the problem or the use case, not only the solution.

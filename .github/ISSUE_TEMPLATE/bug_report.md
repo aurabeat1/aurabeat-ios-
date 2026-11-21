@@ -4,7 +4,7 @@ about: Something in the iOS app does not work as it should
 labels: bug
 ---
 
-<!-- Bugs that also happen in the Android app belong upstream: https://github.com/kushagrasinghx/BitChord/issues -->
+<!-- Please provide detailed steps to reproduce the issue in AuraBeat iOS. -->
 
 **Device and iOS version**
 For example: iPhone 15, iOS 18.1.
