@@ -34,7 +34,7 @@ public struct SilenceSkipConfiguration: Equatable, Sendable {
     }
 
     /// AuraBeat's configuration (`MIN_SILENCE_US` = 1 s, Media3 defaults otherwise).
-    public static let bitChord = SilenceSkipConfiguration()
+    public static let auraBeat = SilenceSkipConfiguration()
 
     /// Media3's stock `SilenceSkippingAudioProcessor()`: a 100 ms minimum.
     public static let media3Default = SilenceSkipConfiguration(minimumSilenceDuration: 0.1)
@@ -198,7 +198,7 @@ public final class SilenceDetector: FloatAudioProcessor, @unchecked Sendable {
 
     private static let noSeek = Int64.min
 
-    public init(configuration: SilenceSkipConfiguration = .bitChord, eventCapacity: Int = 64) {
+    public init(configuration: SilenceSkipConfiguration = .auraBeat, eventCapacity: Int = 64) {
         self.configuration = configuration
         events = SilenceEventRing(capacity: eventCapacity)
         render = .allocate(capacity: 1)
@@ -524,7 +524,7 @@ public final class SilenceDetector: FloatAudioProcessor, @unchecked Sendable {
     public static func scan(interleaved samples: UnsafeBufferPointer<Float>,
                             channelCount: Int,
                             sampleRate: Double,
-                            configuration: SilenceSkipConfiguration = .bitChord) -> [SilenceSpan] {
+                            configuration: SilenceSkipConfiguration = .auraBeat) -> [SilenceSpan] {
         precondition(channelCount > 0, "channelCount must be positive: \(channelCount)")
         guard let base = samples.baseAddress else { return [] }
         let detector = SilenceDetector(configuration: configuration)

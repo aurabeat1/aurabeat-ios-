@@ -59,7 +59,7 @@ public final class LastPlayedStore: @unchecked Sendable {
         let key = directory.standardizedFileURL.resolvingSymlinksInPath().path
         return writeQueuesLock.withLock {
             if let queue = writeQueues[key] { return queue }
-            let queue = DispatchQueue(label: "com.music.aurabeat.PlaybackQueue.LastPlayed")
+            let queue = DispatchQueue(label: "com.aurabeat.music.PlaybackQueue.LastPlayed")
             writeQueues[key] = queue
             return queue
         }

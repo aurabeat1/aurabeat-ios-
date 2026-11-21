@@ -153,7 +153,7 @@ public struct LastFMSessionInfo: Hashable, Sendable {
 /// `updateNowPlaying` / `scrobble` require a session key and throw
 /// `LastFMError.missingSession` without one, mirroring `requireSessionKey()`.
 public actor LastFMClient {
-    public static let userAgent = "AuraBeat (https://github.com/kushagrasinghx/BitChord)"
+    public static let userAgent = "AuraBeat (https://github.com/maanya145/AuraBeat-iOS)"
 
     private var configuration: LastFMConfiguration
     private let session: URLSession

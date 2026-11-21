@@ -78,7 +78,7 @@ enum AutomixModel: String {
 /// arena allocator, which the Android build turns off. Releasing the session between analyses is
 /// what bounds the retained memory here instead.
 final class AutomixModelSession: @unchecked Sendable {
-    private static let logger = Logger(subsystem: "com.music.aurabeat", category: "Automix")
+    private static let logger = Logger(subsystem: "com.aurabeat.music", category: "Automix")
 
     /// True when this build links ONNX Runtime. Without it every model step answers nil.
     static var isRuntimeAvailable: Bool {

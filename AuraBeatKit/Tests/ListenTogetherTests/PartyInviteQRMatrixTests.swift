@@ -7,7 +7,7 @@ import XCTest
 final class PartyInviteQRMatrixTests: XCTestCase {
     func testEncodesInviteToSquareMatrix() {
         let matrix = PartyInviteQRMatrix.make(
-            content: "https://bitchord.kushagrasingh.in/invite/ABC123")
+            content: "https://aurabeat.com/invite/ABC123")
         XCTAssertNotNil(matrix)
         XCTAssertGreaterThanOrEqual(matrix!.dimension, 21)
         XCTAssertEqual(matrix!.dimension, matrix!.rows.count)
@@ -42,7 +42,7 @@ final class PartyInviteQRMatrixTests: XCTestCase {
     /// only judge of that. The matrix is drawn the way the UI draws it (padded by a quiet zone)
     /// and read back.
     func testTheMatrixScansBackToTheInvite() throws {
-        let content = "https://bitchord.kushagrasingh.in/invite/ABC123"
+        let content = "https://aurabeat.com/invite/ABC123"
         let matrix = try XCTUnwrap(PartyInviteQRMatrix.make(content: content))
         let scale = 8
         let quiet = 4
@@ -69,7 +69,7 @@ final class PartyInviteQRMatrixTests: XCTestCase {
     }
 
     func testDeterministic() {
-        let content = "https://bitchord.kushagrasingh.in/invite/XYZ789"
+        let content = "https://aurabeat.com/invite/XYZ789"
         XCTAssertEqual(
             PartyInviteQRMatrix.make(content: content),
             PartyInviteQRMatrix.make(content: content))

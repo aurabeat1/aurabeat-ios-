@@ -43,12 +43,12 @@ import UniformTypeIdentifiers
 /// Remote URLs work too: `AVAssetReader` refuses non-local assets, so a remote asset is fetched to
 /// a temporary file first (see ``AutomixRemoteAudioFetcher``) and deleted after decoding.
 public enum AutomixAudioDecoder {
-    private static let logger = Logger(subsystem: "com.music.aurabeat", category: "Automix")
+    private static let logger = Logger(subsystem: "com.aurabeat.music", category: "Automix")
 
     /// Where decode loops run. `copyNextSampleBuffer` decodes synchronously, so it belongs on a
     /// thread of its own rather than blocking Swift's cooperative pool for seconds at a time.
     private static let decodeQueue = DispatchQueue(
-        label: "com.music.aurabeat.automix.decode",
+        label: "com.aurabeat.music.automix.decode",
         qos: .utility,
         attributes: .concurrent
     )

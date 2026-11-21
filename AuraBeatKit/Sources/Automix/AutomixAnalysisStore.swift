@@ -36,7 +36,7 @@ import os
 /// same recording. Only fields the planner reads are stored, and the curves are rounded to
 /// milliseconds: they are the bulk of the payload and nothing downstream can tell the difference.
 public final class AutomixAnalysisStore: @unchecked Sendable {
-    private static let logger = Logger(subsystem: "com.music.aurabeat", category: "Automix")
+    private static let logger = Logger(subsystem: "com.aurabeat.music", category: "Automix")
 
     /// Bump whenever a stored number starts being computed differently. Entries from an older
     /// schema are ignored rather than migrated: a re-analysis costs seconds, and a beat grid

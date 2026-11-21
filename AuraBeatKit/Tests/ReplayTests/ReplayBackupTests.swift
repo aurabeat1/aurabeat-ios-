@@ -105,7 +105,7 @@ final class ReplayBackupTests: XCTestCase {
     }
 
     func testAcceptsLegacyBitChordAppTag() throws {
-        let data = Data(#"{"app":"bitchord","version":1,"versionName":"1.0","exportedAt":"2026-08-14T10:00:00Z","settings":{},"listening":[]}"#.utf8)
+        let data = Data(#"{"app":"aurabeat","version":1,"versionName":"1.0","exportedAt":"2026-08-14T10:00:00Z","settings":{},"listening":[]}"#.utf8)
         let backup = try ReplayBackup.decode(data)
         XCTAssertEqual(backup.versionName, "1.0")
     }

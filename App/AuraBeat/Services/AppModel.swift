@@ -228,7 +228,7 @@ final class AppModel {
 
     /// Where Listen Together's party server lives unless the listener typed another (Android's
     /// `LISTEN_TOGETHER_SERVER` build default).
-    static let defaultPartyServer = "https://bitchord-listen-together.onrender.com"
+    static let defaultPartyServer = "https://aurabeat-listen-together.onrender.com"
 
     @ObservationIgnored private var started = false
     @ObservationIgnored private var observers: [PlaybackEventObserver] = []

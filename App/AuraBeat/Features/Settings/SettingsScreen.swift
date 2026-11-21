@@ -565,10 +565,10 @@ private struct SettingsColophon: View {
 
     private static var text: AttributedString {
         let links: [(String, String)] = [
-            ("GitHub", "https://github.com/kushagrasinghx/BitChord"),
+            ("GitHub", "https://github.com/maanya145/AuraBeat-iOS"),
             ("Developer", "https://github.com/kushagrasinghx"),
             ("Discord", "https://discord.gg/pDdKfrdHY6"),
-            ("Website", "https://bitchord.kushagrasingh.in/"),
+            ("Website", "https://aurabeat.com/"),
         ]
         var result = AttributedString("aurabeat \(SettingsBackup.appVersion)")
         for (label, url) in links {

@@ -5,28 +5,28 @@ import XCTest
 /// server-routing invariants that keep deep-link switches on the right server.
 final class JamInviteLinkTests: XCTestCase {
     func testParsesAndNormalizesPublicInvite() {
-        XCTAssertEqual("A1B2C3", JamInviteLink.parse("https://bitchord.kushagrasingh.in/invite/a1b2c3"))
+        XCTAssertEqual("A1B2C3", JamInviteLink.parse("https://aurabeat.com/invite/a1b2c3"))
     }
 
     func testAcceptsQueryParametersWithoutMakingThemPartOfTheCode() {
-        XCTAssertEqual("ABC123", JamInviteLink.parse("https://bitchord.kushagrasingh.in/invite/ABC123?from=share"))
+        XCTAssertEqual("ABC123", JamInviteLink.parse("https://aurabeat.com/invite/ABC123?from=share"))
     }
 
     func testRejectsOtherHostsSchemesPathsAndMalformedCodes() {
         XCTAssertNil(JamInviteLink.parse("http://aurabeat.kushagrasingh.in/invite/ABC123"))
         XCTAssertNil(JamInviteLink.parse("https://example.com/invite/ABC123"))
-        XCTAssertNil(JamInviteLink.parse("https://bitchord.kushagrasingh.in/"))
-        XCTAssertNil(JamInviteLink.parse("https://bitchord.kushagrasingh.in/download"))
-        XCTAssertNil(JamInviteLink.parse("https://bitchord.kushagrasingh.in/invite/ABC123/"))
-        XCTAssertNil(JamInviteLink.parse("https://bitchord.kushagrasingh.in/invite/ABC123/extra"))
-        XCTAssertNil(JamInviteLink.parse("https://bitchord.kushagrasingh.in/invite/TOO-LONG"))
+        XCTAssertNil(JamInviteLink.parse("https://aurabeat.com/"))
+        XCTAssertNil(JamInviteLink.parse("https://aurabeat.com/download"))
+        XCTAssertNil(JamInviteLink.parse("https://aurabeat.com/invite/ABC123/"))
+        XCTAssertNil(JamInviteLink.parse("https://aurabeat.com/invite/ABC123/extra"))
+        XCTAssertNil(JamInviteLink.parse("https://aurabeat.com/invite/TOO-LONG"))
         XCTAssertNil(JamInviteLink.parse(nil))
         XCTAssertNil(JamInviteLink.parse("not a url at all"))
     }
 
     func testBuildsCanonicalShareURL() {
         XCTAssertEqual(
-            "https://bitchord.kushagrasingh.in/invite/ABC123",
+            "https://aurabeat.com/invite/ABC123",
             JamInviteLink.url(code: "abc123"))
     }
 
@@ -38,10 +38,10 @@ final class JamInviteLinkTests: XCTestCase {
             "https://my-party.onrender.com/invite/ABC123",
             JamInviteLink.url(code: "abc123", customServer: "https://my-party.onrender.com/"))
         XCTAssertEqual(
-            "https://bitchord.kushagrasingh.in/invite/ABC123",
+            "https://aurabeat.com/invite/ABC123",
             JamInviteLink.url(code: "abc123", customServer: ""))
         XCTAssertEqual(
-            "https://bitchord.kushagrasingh.in/invite/ABC123",
+            "https://aurabeat.com/invite/ABC123",
             JamInviteLink.url(code: "abc123", customServer: nil))
     }
 
@@ -72,14 +72,14 @@ final class JamInviteLinkTests: XCTestCase {
     }
 
     func testParsesLegacyCustomSchemeInvite() {
-        let invite = JamInviteLink.parseInvite("bitchord://party/a1b2c3?server=https%3A%2F%2Fmy-party.onrender.com")
+        let invite = JamInviteLink.parseInvite("aurabeat://party/a1b2c3?server=https%3A%2F%2Fmy-party.onrender.com")
         XCTAssertEqual("A1B2C3", invite?.code)
         XCTAssertEqual("https://my-party.onrender.com", invite?.serverUrl)
     }
 
     func testParsesWebInviteWithServerParameter() {
         let invite = JamInviteLink.parseInvite(
-            "https://bitchord.kushagrasingh.in/invite/ABC123?server=https%3A%2F%2Fcustom.example.com")
+            "https://aurabeat.com/invite/ABC123?server=https%3A%2F%2Fcustom.example.com")
         XCTAssertEqual("ABC123", invite?.code)
         XCTAssertEqual("https://custom.example.com", invite?.serverUrl)
     }

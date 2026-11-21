@@ -126,8 +126,8 @@ Open the workspace, not the `.xcodeproj`. It contains the app project and the `A
 The project uses automatic signing with no team set, and the maintainer's identifiers. To run on your own device:
 
 1. Select your team under Signing & Capabilities for the `AuraBeat`, `AuraBeatWidgetExtension` and `AuraBeatShareExtension` targets.
-2. Change the bundle identifiers to a prefix you own. The app is `com.music.aurabeat`, the widget is `com.music.aurabeat.widget` and the Share extension is `com.music.aurabeat.share`. The extensions must keep the app's identifier as their prefix.
-3. Change the app group `group.com.music.aurabeat` in the three files under `App/Config/*.entitlements` and in `App/Shared/SharedConstants.swift`. The widget and the Share extension read the app's data through this group.
+2. Change the bundle identifiers to a prefix you own. The app is `com.aurabeat.music`, the widget is `com.aurabeat.music.widget` and the Share extension is `com.aurabeat.music.share`. The extensions must keep the app's identifier as their prefix.
+3. Change the app group `group.com.aurabeat.music` in the three files under `App/Config/*.entitlements` and in `App/Shared/SharedConstants.swift`. The widget and the Share extension read the app's data through this group.
 
 Do not commit these changes in a pull request.
 

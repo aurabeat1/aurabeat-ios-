@@ -41,7 +41,7 @@ public final class DiagnosticLog: @unchecked Sendable {
         [fileURL, rotatedFileURL].filter { FileManager.default.fileExists(atPath: $0.path) }
     }
 
-    private let queue = DispatchQueue(label: "com.music.aurabeat.diagnostic-log", qos: .utility)
+    private let queue = DispatchQueue(label: "com.aurabeat.music.diagnostic-log", qos: .utility)
     private let now: @Sendable () -> Date
     private let timeZone: TimeZone
     private let lock = NSLock()

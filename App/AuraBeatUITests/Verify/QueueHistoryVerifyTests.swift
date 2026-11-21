@@ -1,6 +1,6 @@
 import XCTest
 
-/// Verifies the queue's "Previously played" history (Android v1.8.1, kushagrasinghx/BitChord#167),
+/// Verifies the queue's "Previously played" history (Android v1.8.1, maanya145/AuraBeat-iOS#167),
 /// driven the way a user does it, with a screenshot per step. Run it from the folder that holds
 /// `AuraBeat.xcworkspace`:
 /// `xcodebuild test -workspace AuraBeat.xcworkspace -scheme AuraBeat -testPlan AuraBeatE2E

@@ -130,7 +130,7 @@ public enum ReplayBackup {
         } catch {
             throw ReplayBackupError.notAnAuraBeatBackup
         }
-        guard stored.app == appTag || stored.app == "bitchord" else {
+        guard stored.app == appTag else {
             throw ReplayBackupError.foreignBackup(app: stored.app)
         }
         guard stored.version <= schemaVersion else {

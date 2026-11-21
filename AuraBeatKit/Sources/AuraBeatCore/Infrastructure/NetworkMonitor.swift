@@ -57,7 +57,7 @@ public protocol NetworkStatusProviding: AnyObject, Sendable {
 /// (typically within milliseconds).
 public final class NetworkMonitor: NetworkStatusProviding, Observable, @unchecked Sendable {
     private let monitor: NWPathMonitor
-    private let queue = DispatchQueue(label: "com.music.aurabeat.network-monitor")
+    private let queue = DispatchQueue(label: "com.aurabeat.music.network-monitor")
     private let lock = NSLock()
     private var current = NetworkStatus.offline
     private var continuations: [UUID: AsyncStream<NetworkStatus>.Continuation] = [:]

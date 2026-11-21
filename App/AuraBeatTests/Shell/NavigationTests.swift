@@ -36,7 +36,7 @@ final class DeepLinkRoutingTests: XCTestCase {
     func testAPartyInviteOpensListenTogetherWithTheCodeWaiting() throws {
         let router = AppRouter()
         router.selectedTab = .explore
-        let link = try XCTUnwrap(DeepLink.parse(URL(string: "https://bitchord.kushagrasingh.in/invite/ABC234")!))
+        let link = try XCTUnwrap(DeepLink.parse(URL(string: "https://aurabeat.com/invite/ABC234")!))
         XCTAssertEqual(link, .party(code: "ABC234", server: nil))
 
         router.handle(link, player: nil) { _ in nil }

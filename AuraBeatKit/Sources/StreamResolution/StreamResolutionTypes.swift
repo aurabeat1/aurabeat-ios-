@@ -2,8 +2,8 @@ import CryptoKit
 import Foundation
 import os
 
-/// One logger for the module, as the README asks: subsystem `com.music.aurabeat`, category = module.
-let streamLog = Logger(subsystem: "com.music.aurabeat", category: "StreamResolution")
+/// One logger for the module, as the README asks: subsystem `com.aurabeat.music`, category = module.
+let streamLog = Logger(subsystem: "com.aurabeat.music", category: "StreamResolution")
 
 // MARK: - Quality ceilings
 

@@ -15,20 +15,20 @@ public struct AddonManifest: Decodable, Hashable, Sendable {
     public var name: String
     public var version: String
     public var resources: [String]
-    /// Whether the addon requires BitChord hardware authentication.
-    public var bitchordAuth: Bool
+    /// Whether the addon requires AuraBeat hardware authentication.
+    public var aurabeatAuth: Bool
     /// The settings schema the addon declares. Read for its *defaults*, not to build a UI: the
     /// protocol has the host send what the user picked as query parameters, and with no form the
     /// declared defaults are what the reference host sends. That is what reaches an addon that
     /// gates its lossless tier behind a `quality` setting.
     var settings: [AddonSetting]
 
-    public init(id: String = "", name: String = "", version: String = "", resources: [String] = [], bitchordAuth: Bool = false) {
+    public init(id: String = "", name: String = "", version: String = "", resources: [String] = [], aurabeatAuth: Bool = false) {
         self.id = id
         self.name = name
         self.version = version
         self.resources = resources
-        self.bitchordAuth = bitchordAuth
+        self.aurabeatAuth = aurabeatAuth
         settings = []
     }
 
@@ -38,7 +38,7 @@ public struct AddonManifest: Decodable, Hashable, Sendable {
         name = c.lenientString("name") ?? ""
         version = c.lenientString("version") ?? ""
         resources = c.lenientStrings("resources")
-        bitchordAuth = c.lenientBool("bitchordAuth") ?? false
+        aurabeatAuth = c.lenientBool("aurabeatAuth") ?? false
         settings = c.lenientArray("settings", of: AddonSetting.self)
     }
 

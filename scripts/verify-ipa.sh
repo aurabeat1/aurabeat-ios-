@@ -20,6 +20,6 @@ for b in "$APP" "$APP"/PlugIns/*.appex; do
   codesign -dv "$b" 2>&1 | grep -E '^(Identifier|Signature|Format)=' || true
   ENT=$(codesign -d --entitlements :- "$b" 2>/dev/null)
   echo "$ENT"
-  grep -q "group.com.music.aurabeat" <<<"$ENT" \
+  grep -q "group.com.aurabeat.music" <<<"$ENT" \
     || { echo "$(basename "$b") lacks the app-group entitlement" >&2; exit 1; }
 done

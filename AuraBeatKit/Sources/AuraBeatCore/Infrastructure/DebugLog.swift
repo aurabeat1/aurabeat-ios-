@@ -3,9 +3,9 @@ import os
 
 // Ports data/DebugLog.kt onto os.Logger.
 
-/// The app's logging conventions: subsystem `com.music.aurabeat`, category = module name.
+/// The app's logging conventions: subsystem `com.aurabeat.music`, category = module name.
 public enum AuraBeatLogging {
-    public static let subsystem = "com.music.aurabeat"
+    public static let subsystem = "com.aurabeat.music"
 
     /// A logger for `category` (use your module name: "Lyrics", "Downloads", …).
     public static func logger(_ category: String) -> Logger {

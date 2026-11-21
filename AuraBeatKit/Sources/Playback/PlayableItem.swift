@@ -186,7 +186,7 @@ extension AVURLAsset {
     /// converted DASH manifests under.
     var isStreamingPlaylist: Bool {
         let s = url.scheme?.lowercased()
-        return url.pathExtension.lowercased() == "m3u8" || s == "aurabeat-hls" || s == "bitchord-hls"
+        return url.pathExtension.lowercased() == "m3u8" || s == "aurabeat-hls"
     }
 }
 

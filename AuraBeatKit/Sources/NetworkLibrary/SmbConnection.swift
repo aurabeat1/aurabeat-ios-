@@ -12,7 +12,7 @@ import os
 // credentials change, so a changed password can never keep reading on the
 // old one.
 
-private let smbLog = Logger(subsystem: "com.music.aurabeat", category: "NetworkLibrary")
+private let smbLog = Logger(subsystem: "com.aurabeat.music", category: "NetworkLibrary")
 
 /// A connected AMSMB2 share as a ``SmbShareSession``.
 ///

@@ -4,7 +4,7 @@ import XCTest
 /// Package test bundles run without entitlements, so they can't reach the Keychain on the
 /// simulator. These run inside the signed app, which is where credentials really live.
 final class KeychainInAppTests: XCTestCase {
-    private let store = KeychainStore(service: "com.music.aurabeat.tests.\(UUID().uuidString)")
+    private let store = KeychainStore(service: "com.aurabeat.music.tests.\(UUID().uuidString)")
 
     override func tearDown() {
         try? store.removeAll()

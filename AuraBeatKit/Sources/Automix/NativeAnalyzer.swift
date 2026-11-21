@@ -35,7 +35,7 @@ import os
 /// loud is it there, and is anyone singing" — plus a beat grid from autocorrelation, which the
 /// model pass refines where it can.
 enum TrackFeatures {
-    private static let logger = Logger(subsystem: "com.music.aurabeat", category: "Automix")
+    private static let logger = Logger(subsystem: "com.aurabeat.music", category: "Automix")
 
     /// The rate the analyzer's window and hop constants assume, deliberately low, because envelope
     /// and structure work needs time resolution rather than bandwidth, and an eighth of the

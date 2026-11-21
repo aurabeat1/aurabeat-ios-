@@ -135,7 +135,7 @@ public actor DiscordGatewaySocket {
     private let configuration: Configuration
     private let makeTransport: @Sendable (URL) async throws -> any DiscordGatewayTransport
     private let backoffSleep: @Sendable (UInt64) async -> Void
-    private let logger = Logger(subsystem: "com.music.aurabeat", category: "Integrations")
+    private let logger = Logger(subsystem: "com.aurabeat.music", category: "Integrations")
 
     private var loopTask: Task<Void, Never>?
     private var heartbeatTask: Task<Void, Never>?

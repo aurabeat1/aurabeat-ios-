@@ -22,7 +22,7 @@ import UserNotifications
 // result may surface as a local notification, when the app opts in via a
 // ``WebDavUploadNotifying`` and the user granted notification permission.
 
-private let uploadLog = Logger(subsystem: "com.music.aurabeat", category: "NetworkLibrary")
+private let uploadLog = Logger(subsystem: "com.aurabeat.music", category: "NetworkLibrary")
 
 /// Copies local audio files to the configured WebDAV server.
 public actor WebDavUploads {

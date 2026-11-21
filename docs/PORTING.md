@@ -5,7 +5,7 @@ These are the notes the iOS port was planned and checked against. Code comments 
 Target: native iOS app in SwiftUI, iOS 17+.
 Source: [AuraBeat for Android](https://github.com/kushagrasinghx/BitChord), in Kotlin and Jetpack Compose (`app/`), plus a Go party server (`backend/`). The checklist was written against Android 1.7 ([tag v1.7](https://github.com/kushagrasinghx/BitChord/tree/v1.7)); items added from later Android releases say so, for example the app icon picker from 1.8.2.
 
-Android paths below are relative to [`app/src/main/java/com/music/aurabeat/`](https://github.com/kushagrasinghx/BitChord/tree/v1.7/app/src/main/java/com/music/aurabeat) in the upstream repository, unless they start with `app/`, `backend/`, `native/`, `docs/` or `res/` (short for `app/src/main/res/`), which are relative to the upstream repository root. Paths that start with `App/` or name an iOS test (`AuraBeatTests/…`, `LyricsTests/…`) are in this repository.
+Android paths below are relative to [`app/src/main/java/com/aurabeat/music/`](https://github.com/maanya145/AuraBeat-iOS/tree/main/app/src/main/java/com/aurabeat/music) in the upstream repository, unless they start with `app/`, `backend/`, `native/`, `docs/` or `res/` (short for `app/src/main/res/`), which are relative to the upstream repository root. Paths that start with `App/` or name an iOS test (`AuraBeatTests/…`, `LyricsTests/…`) are in this repository.
 
 ---
 

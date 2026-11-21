@@ -113,7 +113,7 @@ final class SilenceDetectionTests: XCTestCase {
     /// frames that processor drops must be exactly the frames the detector says
     /// to skip. `testWhatAnAndroidPhoneActuallySkips` covers the verbatim arithmetic.
     func testSkipsExactlyWhatMedia3Drops() {
-        for (seed, configuration) in [(1, SilenceSkipConfiguration.bitChord), (2, .bitChord), (3, .media3Default),
+        for (seed, configuration) in [(1, SilenceSkipConfiguration.auraBeat), (2, .auraBeat), (3, .media3Default),
                                       (4, SilenceSkipConfiguration(minimumSilenceDuration: 0.5, silenceRetentionRatio: 0.5,
                                                                    maxSilenceToKeepDuration: 1.2)),
                                       (5, SilenceSkipConfiguration(silenceRetentionRatio: 0, maxSilenceToKeepDuration: 1)),
@@ -159,7 +159,7 @@ final class SilenceDetectionTests: XCTestCase {
     func testWhatAnAndroidPhoneActuallySkips() {
         let rate = 48_000
         func android(_ signal: Signal) -> (skipped: Int, heard: Int) {
-            let reference = Media3SilenceSkipperReference(configuration: .bitChord, sampleRate: rate,
+            let reference = Media3SilenceSkipperReference(configuration: .auraBeat, sampleRate: rate,
                                                           channelCount: 2, arithmetic: .media3)
             let bytes = signal.int16Bytes
             var offset = 0
@@ -303,7 +303,7 @@ final class SilenceDetectionTests: XCTestCase {
     }
 
     func testEventsBeyondTheRingsCapacityAreDroppedAndCounted() {
-        let detector = SilenceDetector(configuration: .bitChord, eventCapacity: 2)
+        let detector = SilenceDetector(configuration: .auraBeat, eventCapacity: 2)
         detector.isEnabled = true
         detector.configure(sampleRate: sampleRate, channelCount: 2)
         Signal().silent(9_000).loud(1).silent(9_000).loud(1).silent(9_000).loud(1).withChannels { detector.process($0) }
@@ -322,14 +322,14 @@ final class SilenceDetectionTests: XCTestCase {
 
     // ---- Harness ------------------------------------------------------------------
 
-    private func makeDetector(_ configuration: SilenceSkipConfiguration = .bitChord) -> SilenceDetector {
+    private func makeDetector(_ configuration: SilenceSkipConfiguration = .auraBeat) -> SilenceDetector {
         let detector = SilenceDetector(configuration: configuration, eventCapacity: 256)
         detector.isEnabled = true
         detector.configure(sampleRate: sampleRate, channelCount: 2)
         return detector
     }
 
-    private func detect(_ signal: Signal, configuration: SilenceSkipConfiguration = .bitChord,
+    private func detect(_ signal: Signal, configuration: SilenceSkipConfiguration = .auraBeat,
                         chunkFrames: Int = 512) -> (events: [SilenceEvent], detector: SilenceDetector) {
         let detector = makeDetector(configuration)
         var events: [SilenceEvent] = []
@@ -345,7 +345,7 @@ final class SilenceDetectionTests: XCTestCase {
         return (events, detector)
     }
 
-    private func detect(_ signal: Signal, configuration: SilenceSkipConfiguration = .bitChord,
+    private func detect(_ signal: Signal, configuration: SilenceSkipConfiguration = .auraBeat,
                         chunking random: inout SplitMix64) -> (events: [SilenceEvent], detector: SilenceDetector) {
         let detector = makeDetector(configuration)
         var events: [SilenceEvent] = []
@@ -361,7 +361,7 @@ final class SilenceDetectionTests: XCTestCase {
         return (events, detector)
     }
 
-    private func endedSpans(_ signal: Signal, configuration: SilenceSkipConfiguration = .bitChord) -> [SilenceSpan] {
+    private func endedSpans(_ signal: Signal, configuration: SilenceSkipConfiguration = .auraBeat) -> [SilenceSpan] {
         detect(signal, configuration: configuration).events.filter { $0.kind == .ended && $0.span.skippedFrames > 0 }.map(\.span)
     }
 

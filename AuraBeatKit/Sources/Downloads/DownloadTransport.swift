@@ -75,7 +75,7 @@ public protocol DownloadTransport: AnyObject, Sendable {
 /// again.
 public final class URLSessionDownloadTransport: NSObject, DownloadTransport, URLSessionDownloadDelegate, @unchecked Sendable {
     /// The identifier the app's background session uses.
-    public static let defaultBackgroundIdentifier = "com.music.aurabeat.downloads"
+    public static let defaultBackgroundIdentifier = "com.aurabeat.music.downloads"
 
     /// What a finished transfer whose body couldn't be kept is told as (both places that surface it).
     private static let storageFailure = DownloadError("Couldn't save the download to this device's storage")
@@ -140,7 +140,7 @@ public final class URLSessionDownloadTransport: NSObject, DownloadTransport, URL
         }
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 1
-        queue.name = "com.music.aurabeat.downloads.transport"
+        queue.name = "com.aurabeat.music.downloads.transport"
         session = URLSession(configuration: configuration, delegate: self, delegateQueue: queue)
         try? FileManager.default.createDirectory(at: stagingDirectory, withIntermediateDirectories: true)
         // Transfers started by an earlier launch of the app are still running in a background

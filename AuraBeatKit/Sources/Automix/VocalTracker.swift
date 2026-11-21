@@ -32,7 +32,7 @@ import os
 /// vocals target is used: AuraBeat needs to know how much vocal content is present at an instant,
 /// not to reconstruct four stems.
 final class VocalTracker: @unchecked Sendable {
-    private static let logger = Logger(subsystem: "com.music.aurabeat", category: "Automix")
+    private static let logger = Logger(subsystem: "com.aurabeat.music", category: "Automix")
 
     /// The model's fixed input width, ~22.3 s, chosen upstream to cover a transition overlap.
     static let fixedFrames = 960

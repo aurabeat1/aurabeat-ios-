@@ -183,7 +183,7 @@ public final class PlayerDeepLink {
     /// Whether `url` asks for the player.
     public nonisolated static func isOpenPlayer(_ url: URL) -> Bool {
         let s = url.scheme?.lowercased()
-        return (s == "aurabeat" || s == "bitchord") && url.host()?.lowercased() == "player"
+        return (s == "aurabeat") && url.host()?.lowercased() == "player"
     }
 
     /// Reads an incoming URL, and reports whether it asked for the player.

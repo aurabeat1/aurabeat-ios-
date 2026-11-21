@@ -5,7 +5,7 @@ import PackageDescription
 // subsystem of the Android app, so each can be built and tested on its own
 // (`swift test` on the Mac host, or through the app scheme on the simulator).
 //
-// Module → Android source it ports (paths under app/src/main/java/com/music/aurabeat/):
+// Module → Android source it ports (paths under app/src/main/java/com/aurabeat/music/):
 //   AuraBeatCore      data/model, data/settings, data/Http.kt, data/TrackLog.kt, data/LikeState.kt
 //   InnerTube         data/innertube (API + parser), data/YtMusicRepository.kt, auth/*
 //   StreamResolution  data/innertube/{StreamResolver,PlayerClient,InnerTubeXResolver,potoken/*}

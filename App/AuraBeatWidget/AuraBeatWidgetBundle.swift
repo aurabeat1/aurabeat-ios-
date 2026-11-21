@@ -15,7 +15,7 @@ struct AuraBeatWidgetBundle: WidgetBundle {
 
 /// "Now playing 2×2".
 struct NowPlayingSquareWidget: Widget {
-    static let kind = "com.music.aurabeat.widget.square"
+    static let kind = "com.aurabeat.music.widget.square"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: NowPlayingProvider()) { entry in
@@ -31,7 +31,7 @@ struct NowPlayingSquareWidget: Widget {
 
 /// "Now playing 4×2".
 struct NowPlayingWideWidget: Widget {
-    static let kind = "com.music.aurabeat.widget.wide"
+    static let kind = "com.aurabeat.music.widget.wide"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: NowPlayingProvider()) { entry in
@@ -46,7 +46,7 @@ struct NowPlayingWideWidget: Widget {
 
 /// "Now playing 4×1". iOS has no one-row Home Screen size; the medium slot is the closest.
 struct NowPlayingPillWidget: Widget {
-    static let kind = "com.music.aurabeat.widget.pill"
+    static let kind = "com.aurabeat.music.widget.pill"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: NowPlayingProvider()) { entry in

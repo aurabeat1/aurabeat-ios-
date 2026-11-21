@@ -125,7 +125,7 @@ struct SegmentedAudioSource: AudioRangeDataSource {
     /// Whether `stream` is a playlist rather than one file.
     static func handles(_ stream: ResolvedStream) -> Bool {
         let s = stream.url.scheme?.lowercased()
-        return stream.isHLS || s == "aurabeat-hls" || s == "bitchord-hls"
+        return stream.isHLS || s == "aurabeat-hls"
     }
 
     /// Lays `stream` out. Throws for a playlist that isn't fMP4 segments at whole URLs (MPEG-TS,
@@ -586,7 +586,7 @@ final class SegmentedSources: @unchecked Sendable {
         // A remote playlist is keyed by its URL alone, which a fresh resolution signs anew.
         let playlistText = self.playlistText
         let s = stream.url.scheme?.lowercased()
-        let text = (s == "aurabeat-hls" || s == "bitchord-hls") ? try? await playlistText(stream.url, stream.headers) : nil
+        let text = (s == "aurabeat-hls") ? try? await playlistText(stream.url, stream.headers) : nil
         let layout = Layout(url: stream.url, playlist: text)
         let task: Task<SegmentedAudioSource?, Never> = lock.withLock {
             let now = self.now()

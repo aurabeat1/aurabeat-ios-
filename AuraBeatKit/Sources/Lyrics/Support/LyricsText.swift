@@ -1,8 +1,8 @@
 import Foundation
 import os
 
-/// Logging for the whole module: subsystem `com.music.aurabeat`, category `Lyrics`.
-let lyricsLog = Logger(subsystem: "com.music.aurabeat", category: "Lyrics")
+/// Logging for the whole module: subsystem `com.aurabeat.music`, category `Lyrics`.
+let lyricsLog = Logger(subsystem: "com.aurabeat.music", category: "Lyrics")
 
 // The Android code this module ports is Kotlin, and a good deal of its behaviour
 // rests on what Kotlin's string functions do rather than on what Swift's

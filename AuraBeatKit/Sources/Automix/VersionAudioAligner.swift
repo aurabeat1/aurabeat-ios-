@@ -56,7 +56,7 @@ public struct VersionAlignmentTrack: Sendable, Equatable {
 /// so a second switch is instantaneous. ``status`` walks fetching → measuring → aligned/failed so
 /// stats for nerds can say which happened and what the shift came out as.
 public final class VersionAudioAligner: @unchecked Sendable {
-    private static let logger = Logger(subsystem: "com.music.aurabeat", category: "Automix")
+    private static let logger = Logger(subsystem: "com.aurabeat.music", category: "Automix")
 
     /// Envelope hop: 100 frames per second.
     public static let hopMs = 10.0

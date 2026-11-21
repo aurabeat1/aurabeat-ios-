@@ -35,7 +35,7 @@ public final class ArtworkPaletteCache: @unchecked Sendable {
     private let loader: any ArtworkImageLoading
     private let sizing: Sizing
     private let retryDelay: TimeInterval
-    private let logger = Logger(subsystem: "com.music.aurabeat", category: "Theming")
+    private let logger = Logger(subsystem: "com.aurabeat.music", category: "Theming")
 
     private let seeds = ArtworkResultStore<ArtworkSeed>(capacity: 128)
     private let meshes = ArtworkResultStore<ArtworkMesh>(capacity: ArtworkMeshBackdropStyle.cacheEntries)

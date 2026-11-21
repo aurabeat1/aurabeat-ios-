@@ -54,7 +54,7 @@ public struct KeychainStore: CredentialStoring {
     private let accessible: String
 
     /// The app's own service name.
-    public static let defaultService = "com.music.aurabeat"
+    public static let defaultService = "com.aurabeat.music"
 
     /// - Parameters:
     ///   - service: `kSecAttrService` shared by every item this store touches. Tests pass a unique

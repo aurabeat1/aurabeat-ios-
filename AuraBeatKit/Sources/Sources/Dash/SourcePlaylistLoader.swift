@@ -17,7 +17,7 @@ public final class SourcePlaylistLoader: NSObject, AVAssetResourceLoaderDelegate
     public static let shared = SourcePlaylistLoader(files: .standard)
 
     private let files: SourceManifestFiles
-    private let queue = DispatchQueue(label: "com.music.aurabeat.SourcePlaylistLoader")
+    private let queue = DispatchQueue(label: "com.aurabeat.music.SourcePlaylistLoader")
 
     public init(files: SourceManifestFiles) {
         self.files = files

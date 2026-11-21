@@ -72,7 +72,7 @@ final class ListenTogetherFlowTests: XCTestCase {
         XCTAssertEqual(service.creates, [4])
         XCTAssertEqual(model.sheet, .invite)
         XCTAssertEqual(model.state.code, "NEW123")
-        XCTAssertEqual(model.shareMessage, "https://bitchord.kushagrasingh.in/invite/NEW123\n\n" + L10n.listenTogetherShareText("NEW123"))
+        XCTAssertEqual(model.shareMessage, "https://aurabeat.com/invite/NEW123\n\n" + L10n.listenTogetherShareText("NEW123"))
     }
 
     func testAnInviteLinkOpensTheConfirmSheetWithoutJoining() async {
@@ -191,7 +191,7 @@ final class ListenTogetherFlowTests: XCTestCase {
     func testTheInviteLinkPointsAtTheServerHoldingTheParty() async {
         let service = FakePartyService()
         let model = model(service)
-        XCTAssertEqual(model.inviteLink(for: "ABC123"), "https://bitchord.kushagrasingh.in/invite/ABC123")
+        XCTAssertEqual(model.inviteLink(for: "ABC123"), "https://aurabeat.com/invite/ABC123")
         service.active = "https://party.friend.example"
         await model.refreshServer()
         XCTAssertEqual(model.inviteLink(for: "ABC123"), "https://party.friend.example/invite/ABC123")
@@ -228,7 +228,7 @@ final class ListenTogetherFlowTests: XCTestCase {
     }
 
     func testTheInviteQRCodeDrawsOneDotPerDarkModule() throws {
-        let matrix = try XCTUnwrap(PartyInviteQRMatrix.make(content: "https://bitchord.kushagrasingh.in/invite/ABC123"))
+        let matrix = try XCTUnwrap(PartyInviteQRMatrix.make(content: "https://aurabeat.com/invite/ABC123"))
         let rects = PartyQRModules.moduleRects(matrix, side: 132)
         XCTAssertEqual(rects.count, matrix.darkModuleCount)
         let cell = 132 / CGFloat(matrix.dimension)
@@ -312,7 +312,7 @@ final class ListenTogetherRenderTests: XCTestCase {
         let preview = PartyPreview(code: "ABC123", hostName: "Host", memberCount: 6, maxMembers: 10,
                                    members: [PartyPreviewMember(displayName: "A"), PartyPreviewMember(displayName: "B")])
         assertSocialRendered(hostSocial(JoinConfirmSheet(model: model, preview: preview, server: nil).socialEnvironment(app)))
-        assertSocialRendered(hostSocial(InviteSheet(code: "ABC123", link: "https://bitchord.kushagrasingh.in/invite/ABC123",
+        assertSocialRendered(hostSocial(InviteSheet(code: "ABC123", link: "https://aurabeat.com/invite/ABC123",
                                                     shareMessage: "hi", onCopyCode: {}).socialEnvironment(app)))
         assertSocialRendered(hostSocial(PartyServerEditor(service: service) { _ in }.socialEnvironment(app)))
         assertSocialRendered(hostSocial(PartyMembersDrawer(session: service.state) {}.socialEnvironment(app)))

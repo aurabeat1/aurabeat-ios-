@@ -164,7 +164,7 @@ final class URLProtocolStubTests: XCTestCase {
 final class KeychainStoreTests: XCTestCase {
     /// A unique service per run, so the test never meets real items or a previous run's.
     private func makeStore() throws -> KeychainStore {
-        let store = KeychainStore(service: "com.music.aurabeat.tests.\(UUID().uuidString)")
+        let store = KeychainStore(service: "com.aurabeat.music.tests.\(UUID().uuidString)")
         do {
             try store.setString("probe", forKey: "probe")
             try store.removeValue(forKey: "probe")

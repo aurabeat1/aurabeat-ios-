@@ -39,7 +39,7 @@ final class AudioCacheResourceLoader: NSObject, AVAssetResourceLoaderDelegate, @
         self.source = source
         self.store = store
         self.retryDelays = retryDelays
-        self.queue = DispatchQueue(label: "com.music.aurabeat.AudioCache.loader", qos: .userInitiated)
+        self.queue = DispatchQueue(label: "com.aurabeat.music.AudioCache.loader", qos: .userInitiated)
     }
 
     func resourceLoader(

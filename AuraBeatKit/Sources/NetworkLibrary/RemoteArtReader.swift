@@ -14,7 +14,7 @@ public enum RemoteArtReader {
     /// doesn't hold up every other cover.
     private static let extractionQueue: OperationQueue = {
         let queue = OperationQueue()
-        queue.name = "com.music.aurabeat.remote-art"
+        queue.name = "com.aurabeat.music.remote-art"
         queue.maxConcurrentOperationCount = 3
         return queue
     }()

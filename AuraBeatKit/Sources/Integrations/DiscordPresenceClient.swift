@@ -66,7 +66,7 @@ public final class DiscordPresenceClient: Sendable {
     /// application at https://discord.com/developers/applications and swap in
     /// its id to attribute artwork and buttons under your own app.
     public static let applicationId = "1411019391843172514"
-    public static let projectURL = "https://github.com/kushagrasinghx/BitChord"
+    public static let projectURL = "https://github.com/maanya145/AuraBeat-iOS"
     public static let defaultButton1 = "Listen on YouTube Music"
     public static let defaultButton2 = "Visit AuraBeat"
     /// Discord draws the sleeve at roughly 96dp; 480px covers it on any density.
@@ -75,14 +75,14 @@ public final class DiscordPresenceClient: Sendable {
     /// Discord's mirroring endpoint, so it points at the launcher icon in the
     /// repo rather than an asset bundled in the app.
     public static let fallbackArtworkURL =
-        "https://raw.githubusercontent.com/kushagrasinghx/BitChord/main/app/src/main/ic_launcher-playstore.png"
+        "https://raw.githubusercontent.com/maanya145/AuraBeat-iOS/main/.github/assets/icon.png"
 
     public let token: String
     public let appName: String
     private let socket: DiscordGatewaySocket
     let session: URLSession
     private let artworkCache = DiscordArtworkCache()
-    private let logger = Logger(subsystem: "com.music.aurabeat", category: "Integrations")
+    private let logger = Logger(subsystem: "com.aurabeat.music", category: "Integrations")
 
     public init(
         token: String,

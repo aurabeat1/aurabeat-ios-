@@ -31,7 +31,7 @@ public final class CanvasClipCache: Sendable {
 
     /// - Parameters:
     ///   - directory: where clips live; created on init. The app passes a
-    ///     `caches/com.music.aurabeat/canvas` folder (excluded from backup and purged by the
+    ///     `caches/com.aurabeat.music/canvas` folder (excluded from backup and purged by the
     ///     system under pressure, which is exactly the semantics wanted here).
     ///   - limitBytes: eviction target; the oldest clips go once the total passes it.
     public init(directory: URL, limitBytes: Int64 = defaultLimitBytes) {

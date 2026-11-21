@@ -54,7 +54,7 @@ public final class DSPChain: FloatAudioProcessor, @unchecked Sendable {
     /// The same, for any other thread: sample rate and channel count as two floats.
     private let formatWord = AtomicWord(0)
 
-    private static let log = Logger(subsystem: "com.music.aurabeat", category: "AudioDSP")
+    private static let log = Logger(subsystem: "com.aurabeat.music", category: "AudioDSP")
 
     public init(spatial: SpatialAudioProcessor = SpatialAudioProcessor(),
                 equalizer: EqualizerProcessor = EqualizerProcessor(),

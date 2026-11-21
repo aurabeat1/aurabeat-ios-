@@ -44,7 +44,7 @@ final class ArtworkImageCache: @unchecked Sendable {
     /// Covers ``diskImage(for:pixels:)`` found missing or unreadable, so a body pass that asks
     /// again costs nothing; cleared when a load puts the cover in memory. Guarded by `lock`.
     private var diskMisses: Set<NSString> = []
-    private static let signposter = OSSignposter(subsystem: "com.music.aurabeat", category: "Artwork")
+    private static let signposter = OSSignposter(subsystem: "com.aurabeat.music", category: "Artwork")
 
     /// `Library/Caches/AuraBeat/Artwork`, where the shared cache keeps its files.
     static var defaultDirectory: URL {

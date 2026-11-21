@@ -83,7 +83,7 @@ The repository has an `.editorconfig` for indentation and line endings: 4 spaces
 - Swift 5 language mode. Use Swift concurrency (`async`/`await`, actors). UI-facing state is `@Observable` and `@MainActor`.
 - Networking goes through a `URLSession` passed into the initializer (default `.shared`), so tests can inject the `URLProtocol` stubs in `AuraBeatTestSupport`.
 - Store settings in `UserDefaults` (injectable suite), data as JSON under Application Support (injectable directory), and credentials in the Keychain.
-- Log with `os.Logger`, subsystem `com.music.aurabeat`, category set to the module name.
+- Log with `os.Logger`, subsystem `com.aurabeat.music`, category set to the module name.
 - Comment why the code does something, not what it does. No commented-out code. No TODO without an explanation.
 - The app project uses synchronized folders. A new `.swift` file in a target's folder is compiled without editing the project file.
 

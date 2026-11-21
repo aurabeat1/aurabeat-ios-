@@ -34,7 +34,7 @@ public let wordLyricsField = "AURABEAT_LYRICS"
 /// rewrite has corrupted.
 public enum Mp4Tagger {
     /// The reverse-DNS owner of the freeform lyrics item, which is what keeps the name ours.
-    public static let freeformMean = "com.music.aurabeat"
+    public static let freeformMean = "com.aurabeat.music"
 
     /// Box types whose payload is itself a run of child boxes, on the path down to `stco`/`co64`.
     private static let containers: Set<String> = ["moov", "trak", "mdia", "minf", "stbl"]
@@ -317,7 +317,7 @@ public enum Mp4Tagger {
     /// This is where the word timings go: `©lyr` is read by every other player, and a reader without
     /// the A2 extension shows `<00:01.00>` rather than skipping it. A player that doesn't know this
     /// item ignores it whole, so the standard field stays clean and the timings still survive in the
-    /// file. AVFoundation exposes it as `itlk/com.music.aurabeat.AURABEAT_LYRICS`.
+    /// file. AVFoundation exposes it as `itlk/com.aurabeat.music.AURABEAT_LYRICS`.
     private static func freeformItem(name: String, text: String) -> [UInt8] {
         // Both are FullBoxes: four bytes of version/flags, then the string.
         let mean = box("mean", [0, 0, 0, 0] + Array(freeformMean.utf8))

@@ -10,7 +10,7 @@ import os
 // parsed with Foundation's XMLParser so the parser stays pure and
 // unit-testable.
 
-private let webdavLog = Logger(subsystem: "com.music.aurabeat", category: "NetworkLibrary")
+private let webdavLog = Logger(subsystem: "com.aurabeat.music", category: "NetworkLibrary")
 
 /// A minimal WebDAV client over an injected `URLSession` (so tests can stub
 /// it with `URLProtocolStub` from AuraBeatTestSupport).

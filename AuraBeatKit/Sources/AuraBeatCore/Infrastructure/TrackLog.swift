@@ -24,7 +24,7 @@ import os
 /// try await TrackLog.about(song.videoId) { try await resolver.resolveStream(for: song, request: r) }
 /// ```
 ///
-/// Lines are mirrored to `os.Logger` (subsystem `com.music.aurabeat`, the given category) in debug
+/// Lines are mirrored to `os.Logger` (subsystem `com.aurabeat.music`, the given category) in debug
 /// builds, and every line of ``shared`` goes to the log file in every build (``DiagnosticLog``).
 public final class TrackLog: @unchecked Sendable {
     public enum Level: Character, Sendable {

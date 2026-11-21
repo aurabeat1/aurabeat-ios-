@@ -110,7 +110,7 @@ final class PlayerCanvasModel {
 /// fifty times, and every loop re-downloading it was Android's "40 MB for one song".
 enum PlayerCanvasClips {
     static let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        .appending(path: "com.music.aurabeat/canvas", directoryHint: .isDirectory)
+        .appending(path: "com.aurabeat.music/canvas", directoryHint: .isDirectory)
     static let cache = CanvasClipCache(directory: directory)
 }
 

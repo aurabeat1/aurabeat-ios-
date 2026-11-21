@@ -40,7 +40,7 @@ import os
 /// iOS limits background CPU: analysis runs while the app is alive (the audio background mode
 /// keeps it so during playback), at the priority ``AutomixAnalysisBudget`` asks for.
 public final class TrackAnalyzer: @unchecked Sendable {
-    private static let logger = Logger(subsystem: "com.music.aurabeat", category: "Automix")
+    private static let logger = Logger(subsystem: "com.aurabeat.music", category: "Automix")
 
     /// What an unmeasured instant reads as. Below the policy's vocal threshold by design, so
     /// absence of measurement is never mistaken for absence of a vocal, or for the presence of one.
@@ -86,7 +86,7 @@ public final class TrackAnalyzer: @unchecked Sendable {
     private let tracker: BeatTracker
     private let vocals: VocalTracker
     private let jobs = AutomixSerialJobs()
-    private let workQueue = DispatchQueue(label: "com.music.aurabeat.automix.analysis")
+    private let workQueue = DispatchQueue(label: "com.aurabeat.music.automix.analysis")
 
     private let lock = NSLock()
     private var results: [String: TrackAnalysis] = [:]

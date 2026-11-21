@@ -3,7 +3,7 @@ import Observation
 import SwiftUI
 import UIKit
 
-// Ports app/src/main/java/com/music/aurabeat/ui/player/AndroidLyricsShareSheet.kt: the picked lines,
+// Ports app/src/main/java/com/aurabeat/music/ui/player/AndroidLyricsShareSheet.kt: the picked lines,
 // drawn, with the two things you can do to the picture. Built on the Replay's sheet — the same
 // preview, the same two buttons — because it is the same job: a card, saved to Photos or handed to
 // the system share sheet.

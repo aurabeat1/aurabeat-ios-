@@ -167,7 +167,7 @@ enum TestTagger {
         items.append(textItem("©ART", "a"))
         if let lyrics, !lyrics.isEmpty { items.append(textItem("©lyr", lyrics)) }
         if let wordLyrics, !wordLyrics.isEmpty {
-            let mean = box("mean", Data(count: 4) + Data("com.music.aurabeat".utf8))
+            let mean = box("mean", Data(count: 4) + Data("com.aurabeat.music".utf8))
             let name = box("name", Data(count: 4) + Data(LRCFormat.wordLyricsField.utf8))
             items.append(box("----", mean + name + dataAtom(1, Data(wordLyrics.utf8))))
         }

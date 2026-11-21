@@ -2,7 +2,7 @@ import XCTest
 import AuraBeatCore
 @testable import InnerTube
 
-/// The liked-music sync behind kushagrasinghx/BitChord#219 (Android's LikedMusicSyncTest): a liked collection
+/// The liked-music sync behind maanya145/AuraBeat-iOS#219 (Android's LikedMusicSyncTest): a liked collection
 /// larger than one page — or than the old ten-page cap — must still have every id recognised as
 /// liked, without holding the library page open, and a track menu that says nothing about a rating
 /// must never downgrade a LIKE already known.

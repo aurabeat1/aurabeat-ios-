@@ -168,7 +168,7 @@ actor AudioCacheStore {
     init(configuration: Configuration) throws {
         self.configuration = configuration
         self.directory = configuration.directory
-        self.executorQueue = DispatchSerialQueue(label: "com.music.aurabeat.AudioCache", qos: .utility)
+        self.executorQueue = DispatchSerialQueue(label: "com.aurabeat.music.AudioCache", qos: .utility)
         self.limitBytes = configuration.limitBytes
         self.evictor = AudioCacheEvictor(
             maxBytes: configuration.limitBytes,

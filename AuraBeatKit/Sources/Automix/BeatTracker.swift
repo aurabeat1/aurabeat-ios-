@@ -33,7 +33,7 @@ import os
 /// Everything here is optional. A missing model, an unreadable graph, a rate mismatch, too few
 /// peaks, all resolve to nil, and the caller keeps whatever it had.
 final class BeatTracker: @unchecked Sendable {
-    private static let logger = Logger(subsystem: "com.music.aurabeat", category: "Automix")
+    private static let logger = Logger(subsystem: "com.aurabeat.music", category: "Automix")
 
     /// A tracked grid on the analysed audio's own timeline, in seconds.
     struct Grid: Sendable, Equatable {

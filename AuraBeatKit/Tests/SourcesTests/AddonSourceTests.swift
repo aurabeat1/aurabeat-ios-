@@ -706,17 +706,17 @@ final class AddonSourceTests: XCTestCase {
 
     func testManifestDecodesBitChordAuthFlag() throws {
         let decoder = JSONDecoder()
-        let withBool = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"a","bitchordAuth":true}"#.utf8))
-        XCTAssertTrue(withBool.bitchordAuth)
+        let withBool = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"a","aurabeatAuth":true}"#.utf8))
+        XCTAssertTrue(withBool.aurabeatAuth)
 
-        let withString = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"b","bitchordAuth":"true}"#.utf8))
-        XCTAssertTrue(withString.bitchordAuth)
+        let withString = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"b","aurabeatAuth":"true}"#.utf8))
+        XCTAssertTrue(withString.aurabeatAuth)
 
-        let withInt = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"c","bitchordAuth":1}"#.utf8))
-        XCTAssertTrue(withInt.bitchordAuth)
+        let withInt = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"c","aurabeatAuth":1}"#.utf8))
+        XCTAssertTrue(withInt.aurabeatAuth)
 
         let without = try decoder.decode(AddonManifest.self, from: Data(#"{"id":"d"}"#.utf8))
-        XCTAssertFalse(without.bitchordAuth)
+        XCTAssertFalse(without.aurabeatAuth)
     }
 }
 

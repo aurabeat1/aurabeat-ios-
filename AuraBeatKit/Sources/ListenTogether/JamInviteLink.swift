@@ -18,14 +18,14 @@ public struct ParsedPartyInvite: Hashable, Sendable {
 /// Two shapes, matching Android byte-for-byte so an invite made on one platform opens
 /// on the other:
 /// 1. `aurabeat://party/<CODE>?server=<SERVER>`
-/// 2. `https://bitchord.kushagrasingh.in/invite/<CODE>?server=<SERVER>`
+/// 2. `https://aurabeat.com/invite/<CODE>?server=<SERVER>`
 /// (Ports `JamInviteLink` in `data/listentogether/JamInviteLink.kt`. The Android
 /// `consume(Intent)` entry point is `PartyInviteInbox/consume(url:)` here — iOS delivers
 /// deep links as `URL`, not intents.)
 public enum JamInviteLink {
-    public static let origin = "https://bitchord.kushagrasingh.in"
+    public static let origin = "https://aurabeat.com"
 
-    private static let host = "bitchord.kushagrasingh.in"
+    private static let host = "aurabeat.com"
     private static let customScheme = "aurabeat"
     private static let customHost = "party"
 
@@ -41,8 +41,8 @@ public enum JamInviteLink {
         else { return nil }
         let server = queryParam(url, "server").flatMap(sanitizeServerUrl)
 
-        // 1. Custom scheme: aurabeat://party/<CODE> or bitchord://party/<CODE>
-        if (scheme == customScheme || scheme == "bitchord") && host == customHost {
+        // 1. Custom scheme: aurabeat://party/<CODE>
+        if (scheme == customScheme) && host == customHost {
             let pathPart = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                 .nilIfEmpty
             let candidate = pathPart ?? queryParam(url, "code") ?? ""
@@ -50,7 +50,7 @@ public enum JamInviteLink {
             return ParsedPartyInvite(code: code, serverUrl: server)
         }
 
-        // 2. Official web domain: https://bitchord.kushagrasingh.in/invite/<CODE>
+        // 2. Official web domain: https://aurabeat.com/invite/<CODE>
         // Matched entire against the raw string, like the Kotlin regex: Foundation's
         // `URL.path` normalizes a trailing slash away, so the raw path is what decides
         // whether "/invite/ABC123/" or "/invite/ABC123/extra" is an invite (it is not).
