@@ -422,11 +422,11 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
 
         if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 1000:
             tmp_path.replace(out_path)
-            # Prune cache if more than 60 files
+            # Prune cache if more than 120 files
             try:
                 files = sorted(CACHE_DIR.glob("*"), key=lambda p: p.stat().st_mtime)
-                if len(files) > 60:
-                    for old_f in files[:len(files)-60]:
+                if len(files) > 120:
+                    for old_f in files[:len(files)-120]:
                         old_f.unlink(missing_ok=True)
             except Exception:
                 pass
@@ -562,6 +562,11 @@ INDEX_HTML = """<!DOCTYPE html>
       <h2>🎵 Test Search & Instant Playback</h2>
       <div class="search-box">
         <input type="text" id="query" class="search-input" placeholder="Search any song (e.g. Karan Aujla, Shubh, Sidhu Moose Wala)..." onkeydown="if(event.key==='Enter') searchTracks()">
+        <select id="qualitySelect" style="background:#0c1220; border:1px solid var(--border); color:white; border-radius:8px; padding:0 12px; font-size:13px; outline:none; cursor:pointer;">
+          <option value="high" selected>High Quality (320k Direct)</option>
+          <option value="lossless">Hi-Res Lossless (FLAC 24-bit)</option>
+          <option value="atmos">Dolby Atmos (Spatial)</option>
+        </select>
         <button class="btn" onclick="searchTracks()">Search</button>
       </div>
       <div class="results" id="results">
@@ -607,10 +612,11 @@ INDEX_HTML = """<!DOCTYPE html>
     async function searchTracks() {
       const q = document.getElementById('query').value.trim();
       if (!q) return;
+      const qTier = document.getElementById('qualitySelect').value;
       const resEl = document.getElementById('results');
       resEl.innerHTML = '<div style="text-align: center; color: var(--subtext); padding: 15px;">Searching...</div>';
       try {
-        const r = await fetch('/search?q=' + encodeURIComponent(q) + '&quality=lossless&atmos=auto');
+        const r = await fetch('/search?q=' + encodeURIComponent(q) + '&quality=' + qTier + '&atmos=auto');
         const data = await r.json();
         const tracks = data.tracks || [];
         if (!tracks.length) {
@@ -636,10 +642,11 @@ INDEX_HTML = """<!DOCTYPE html>
       const pWrap = document.getElementById('playerWrap');
       const player = document.getElementById('audioPlayer');
       const text = document.getElementById('nowPlayingText');
+      const qTier = document.getElementById('qualitySelect').value;
       text.innerText = 'Loading: ' + decodeURIComponent(title) + '...';
       pWrap.style.display = 'block';
       try {
-        const r = await fetch('/stream/' + id + '?quality=lossless&atmos=auto');
+        const r = await fetch('/stream/' + id + '?quality=' + qTier + '&atmos=auto');
         const data = await r.json();
         if (data.url) {
           player.src = data.url;
@@ -690,7 +697,7 @@ def get_manifest():
 @app.get("/media/{track_id}")
 @app.get("/media/{track_id}/")
 def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
-    # Media URLs expire in 15-30 min and don't need BitChord headers (Task 4)
+    # Media URLs expire in 15-30 min and don't need BitChord headers
     if not media_allowed(track_id, exp, sig):
         raise HTTPException(status_code=403, detail="Expired or invalid media URL")
 
@@ -707,14 +714,33 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
         .replace("atmos_", "")
         .replace("cd_", "")
         .replace("low_", "")
+        .replace("high_", "")
         .replace("aac_", "")
     )
     track_info = RECENT_TRACKS.get(clean_id) or RECENT_TRACKS.get(track_id)
     if not track_info:
         track_info = fetch_jiosaavn_track(clean_id)
 
-    if track_info and track_info.get("rawStreamURL"):
-        raw_url = track_info["rawStreamURL"]
+    if track_info and (track_info.get("rawStreamURL") or track_info.get("streamURL")):
+        raw_url = track_info.get("rawStreamURL") or track_info.get("streamURL")
+
+        # High Quality direct file handling
+        if "high" in track_id:
+            local_raw = CACHE_DIR / f"{clean_id}.raw.mp4"
+            if local_raw.exists() and local_raw.stat().st_size > 1000:
+                return FileResponse(local_raw, media_type="audio/mp4")
+            try:
+                tmp_raw = CACHE_DIR / f"{clean_id}_{os.getpid()}_{time.time_ns()}.tmp.raw.mp4"
+                req = urllib.request.Request(raw_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+                with urllib.request.urlopen(req, timeout=10) as r, open(tmp_raw, "wb") as f:
+                    f.write(r.read())
+                if tmp_raw.exists() and tmp_raw.stat().st_size > 1000:
+                    tmp_raw.replace(local_raw)
+                    return FileResponse(local_raw, media_type="audio/mp4")
+            except Exception as e:
+                print(f"Direct raw fetch failed: {e}")
+            return RedirectResponse(url=raw_url, status_code=307)
+
         tier = "hires"
         media_type = "audio/flac"
         target_name = f"{clean_id}_hires.flac"
@@ -738,9 +764,9 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
         # Trigger transcode immediately in background thread if not already running
         threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, tier), daemon=True).start()
 
-        # Poll up to 2.5 seconds (AuraBeat firstBytesTimeout is 6.0s; dedicated transcode takes ~1.2s)
+        # Poll up to 5.0 seconds for the genuine transcode to complete (AuraBeat firstBytesTimeout is 6.0s)
         t0 = time.time()
-        while time.time() - t0 < 2.5:
+        while time.time() - t0 < 5.0:
             if cached_file.exists() and cached_file.stat().st_size > 1000:
                 return FileResponse(cached_file, media_type=media_type)
             time.sleep(0.025)
@@ -748,46 +774,11 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
         if cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
 
-        # If transcode needs slightly more time on Render CPU, check up to another 1.0s
-        t1 = time.time()
-        while time.time() - t1 < 1.0:
-            if cached_file.exists() and cached_file.stat().st_size > 1000:
-                return FileResponse(cached_file, media_type=media_type)
-            time.sleep(0.04)
+        # If transcode took longer than 5.0s, return 503 so AVPlayer / HTTPAudioSource can retry cleanly
+        # NEVER return mismatched files (like a 2-minute fixture) which cause AudioCacheError.contentChanged!
+        raise HTTPException(status_code=503, detail="Audio transcoding in progress, please retry")
 
-        if cached_file.exists() and cached_file.stat().st_size > 1000:
-            return FileResponse(cached_file, media_type=media_type)
-
-        # If FLAC transcode failed, fallback to genuine FLAC fixture to protect AVPlayer from format mismatch
-        if tier in ["hires", "cd"]:
-            hires_fix = FIXTURES_DIR / "hires.flac"
-            if hires_fix.exists():
-                return FileResponse(hires_fix, media_type="audio/flac")
-
-        # For MP4 / AAC / Atmos, proxy directly with genuine audio/mp4 headers from CDN
-        range_header = request.headers.get("range", "bytes=0-16383")
-        try:
-            proxy_req = urllib.request.Request(raw_url, headers={"Range": range_header, "User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(proxy_req, timeout=5) as p_resp:
-                content = p_resp.read()
-                cr = p_resp.headers.get("Content-Range")
-                headers = {
-                    "Content-Type": p_resp.headers.get("Content-Type", "audio/mp4"),
-                    "Accept-Ranges": "bytes",
-                    "Content-Length": str(len(content)),
-                    "Access-Control-Allow-Origin": "*",
-                }
-                if cr:
-                    headers["Content-Range"] = cr
-                return Response(content=content, status_code=206, headers=headers)
-        except Exception as e:
-            print(f"Proxy fallback error for {clean_id}: {e}")
-
-    # 3. Fallback to fixture or 404
-    hires_fix = FIXTURES_DIR / "hires.flac"
-    if hires_fix.exists():
-        return FileResponse(hires_fix, media_type="audio/flac")
-    return Response(status_code=404, content="Track audio not found")
+    raise HTTPException(status_code=404, detail="Track audio not found")
 
 
 
@@ -901,12 +892,14 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
         return []
 
     songs = []
-    wants_lossless = quality in ["lossless", "max", "hires", "flac"]
+    quality_lower = quality.lower()
+    wants_high = quality_lower in ["high", "medium", "standard"]
+    wants_lossless = quality_lower in ["lossless", "max", "hires", "flac"]
     wants_atmos = (
-        atmos in ["auto", "1", "true"]
-        or quality == "atmos"
+        quality_lower == "atmos"
         or "atmos" in query.lower()
         or "spatial" in query.lower()
+        or (atmos in ["auto", "1", "true"] and not wants_high)
     )
 
     for s in results:
@@ -961,73 +954,110 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             "album": album_name,
             "duration": duration,
             "artworkURL": image,
+            "rawStreamURL": stream_url,
+            "streamURL": stream_url
+        }
+
+        # High Quality 320kbps AAC track (Direct CDN line-rate, 0ms transcode delay)
+        high_track = {
+            "id": f"high_{song_id}",
+            "title": title,
+            "artist": artist_name,
+            "album": album_name,
+            "duration": duration,
+            "format": "m4a",
+            "codec": "aac",
+            "mimeType": "audio/mp4",
+            "audioQuality": "320kbps AAC",
+            "bitrate": 320,
+            "sampleRate": 44100,
+            "audioModes": ["STEREO"],
+            "artworkURL": image,
+            "streamURL": stream_url,
             "rawStreamURL": stream_url
         }
 
-        # 1. Immersive Dolby Atmos track
-        if wants_atmos:
-            atmos_track = {
-                "id": f"atmos_{song_id}",
-                "title": title,
-                "artist": artist_name,
-                "album": album_name,
-                "duration": duration,
-                "format": "eac3-joc",
-                "codec": "eac3-joc",
-                "mimeType": "audio/mp4",
-                "audioQuality": "Dolby Atmos",
-                "audioMode": "DOLBY_ATMOS",
-                "audioModes": ["DOLBY_ATMOS"],
-                "atmos": True,
-                "bitrate": 768,
-                "sampleRate": 48000,
-                "artworkURL": image,
-                "rawStreamURL": stream_url
-            }
-            songs.append(atmos_track)
-            RECENT_TRACKS[atmos_track["id"]] = atmos_track
+        # Hi-Res Lossless FLAC track
+        hires_track = {
+            "id": f"hires_{song_id}",
+            "title": title,
+            "artist": artist_name,
+            "album": album_name,
+            "duration": duration,
+            "format": "flac",
+            "codec": "flac",
+            "mimeType": "audio/flac",
+            "audioQuality": "FLAC 24-bit / 96 kHz",
+            "bitrate": 4608,
+            "sampleRate": 96000,
+            "bitDepth": 24,
+            "audioModes": ["STEREO"],
+            "artworkURL": image,
+            "streamURL": stream_url,
+            "rawStreamURL": stream_url
+        }
 
-        # 2. Hi-Res Lossless FLAC track
-        if wants_lossless or not wants_atmos:
-            track = {
-                "id": f"hires_{song_id}",
-                "title": title,
-                "artist": artist_name,
-                "album": album_name,
-                "duration": duration,
-                "format": "flac",
-                "codec": "flac",
-                "mimeType": "audio/flac",
-                "audioQuality": "FLAC 24-bit / 96 kHz",
-                "bitrate": 4608,
-                "sampleRate": 96000,
-                "bitDepth": 24,
-                "audioModes": ["STEREO"],
-                "artworkURL": image,
-                "rawStreamURL": stream_url
-            }
-            songs.append(track)
-            RECENT_TRACKS[track["id"]] = track
+        # Immersive Dolby Atmos track
+        atmos_track = {
+            "id": f"atmos_{song_id}",
+            "title": title,
+            "artist": artist_name,
+            "album": album_name,
+            "duration": duration,
+            "format": "eac3-joc",
+            "codec": "eac3-joc",
+            "mimeType": "audio/mp4",
+            "audioQuality": "Dolby Atmos",
+            "audioMode": "DOLBY_ATMOS",
+            "audioModes": ["DOLBY_ATMOS"],
+            "atmos": True,
+            "bitrate": 768,
+            "sampleRate": 48000,
+            "artworkURL": image,
+            "streamURL": stream_url,
+            "rawStreamURL": stream_url
+        }
+
+        RECENT_TRACKS[high_track["id"]] = high_track
+        RECENT_TRACKS[hires_track["id"]] = hires_track
+        RECENT_TRACKS[atmos_track["id"]] = atmos_track
+
+        # Order candidates based on requested quality
+        has_atmos_query = (
+            quality_lower == "atmos"
+            or "atmos" in query.lower()
+            or "spatial" in query.lower()
+        )
+
+        if has_atmos_query:
+            songs.extend([atmos_track, hires_track, high_track])
+        elif wants_high:
+            songs.extend([high_track, hires_track, atmos_track])
+        elif wants_lossless:
+            songs.extend([hires_track, atmos_track, high_track])
+        elif wants_atmos:
+            songs.extend([atmos_track, hires_track, high_track])
+        else:
+            songs.extend([hires_track, high_track, atmos_track])
 
     # Pre-transcode the top candidate in background so it is ready on tap instantly
     if songs:
         top_song = songs[0]
         top_raw_url = top_song.get("rawStreamURL")
+        top_id = top_song.get("id", "")
+        clean_top_id = (
+            top_id.replace("hires_", "")
+            .replace("atmos_", "")
+            .replace("cd_", "")
+            .replace("low_", "")
+            .replace("high_", "")
+            .replace("aac_", "")
+        )
         if top_raw_url:
-            top_id = top_song.get("id", "")
-            clean_top_id = (
-                top_id.replace("hires_", "")
-                .replace("atmos_", "")
-                .replace("cd_", "")
-                .replace("low_", "")
-                .replace("aac_", "")
-            )
-            top_tier = "atmos" if "atmos" in top_id else "hires"
-            threading.Thread(
-                target=transcode_to_quality,
-                args=(top_raw_url, clean_top_id, top_tier),
-                daemon=True
-            ).start()
+            if top_id.startswith("hires_"):
+                threading.Thread(target=transcode_to_quality, args=(top_raw_url, clean_top_id, "hires"), daemon=True).start()
+            elif top_id.startswith("atmos_"):
+                threading.Thread(target=transcode_to_quality, args=(top_raw_url, clean_top_id, "atmos"), daemon=True).start()
 
     return songs
 
@@ -1079,24 +1109,32 @@ def stream(
         .replace("atmos_", "")
         .replace("cd_", "")
         .replace("low_", "")
+        .replace("high_", "")
         .replace("aac_", "")
     )
     track = RECENT_TRACKS.get(track_id) or RECENT_TRACKS.get(clean_id)
     if not track:
         track = fetch_jiosaavn_track(clean_id)
 
-    raw_url = (track or {}).get("rawStreamURL")
-    if raw_url:
-        bg_tier = "hires"
-        if track_id.startswith("atmos_") or (quality == "atmos" and not track_id.startswith("hires_")):
-            bg_tier = "atmos"
-        elif track_id.startswith("cd_") or quality == "lossless_cd":
-            bg_tier = "cd"
-        elif track_id.startswith("low_") or quality == "low":
-            bg_tier = "low"
-        threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, bg_tier), daemon=True).start()
+    raw_url = (track or {}).get("rawStreamURL") or (track or {}).get("streamURL")
+    quality_lower = quality.lower()
 
-    if track_id.startswith("atmos_") or (quality == "atmos" and not track_id.startswith("hires_")):
+    if track_id.startswith("high_") or (quality_lower in ["high", "medium", "standard"] and not track_id.startswith("hires_") and not track_id.startswith("atmos_")):
+        # Direct High Quality 320kbps AAC (0ms latency, zero transcoding, line-rate stream)
+        direct_url = raw_url
+        return {
+            "url": direct_url or signed_media_url(request, f"high_{clean_id}"),
+            "format": "m4a",
+            "codec": "aac",
+            "mimeType": "audio/mp4",
+            "audioQuality": "320kbps AAC",
+            "bitrate": 320,
+            "sampleRate": 44100,
+            "audioModes": ["STEREO"]
+        }
+    elif track_id.startswith("atmos_") or (quality_lower == "atmos" and not track_id.startswith("hires_")):
+        if raw_url:
+            threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, "atmos"), daemon=True).start()
         media_url = signed_media_url(request, f"atmos_{clean_id}")
         return {
             "url": media_url,
@@ -1110,7 +1148,9 @@ def stream(
             "bitrate": 768,
             "sampleRate": 48000
         }
-    elif track_id.startswith("cd_") or quality == "lossless_cd":
+    elif track_id.startswith("cd_") or quality_lower == "lossless_cd":
+        if raw_url:
+            threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, "cd"), daemon=True).start()
         media_url = signed_media_url(request, f"cd_{clean_id}")
         return {
             "url": media_url,
@@ -1123,7 +1163,9 @@ def stream(
             "bitDepth": 16,
             "audioModes": ["STEREO"]
         }
-    elif track_id.startswith("low_") or quality == "low":
+    elif track_id.startswith("low_") or quality_lower == "low":
+        if raw_url:
+            threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, "low"), daemon=True).start()
         media_url = signed_media_url(request, f"low_{clean_id}")
         return {
             "url": media_url,
@@ -1133,7 +1175,9 @@ def stream(
             "audioQuality": "64kbps Data-Saver",
             "bitrate": 64
         }
-    elif track_id.startswith("hires_") or quality in ["lossless", "max", "hires", "flac"]:
+    elif track_id.startswith("hires_") or quality_lower in ["lossless", "max", "hires", "flac"]:
+        if raw_url:
+            threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, "hires"), daemon=True).start()
         media_url = signed_media_url(request, f"hires_{clean_id}")
         return {
             "url": media_url,
@@ -1147,13 +1191,15 @@ def stream(
             "audioModes": ["STEREO"]
         }
     else:
-        # Default High Quality 320k
-        direct_url = (track or {}).get("streamURL") or (track or {}).get("rawStreamURL")
+        # Default fallback to direct 320k AAC
+        direct_url = raw_url
         return {
-            "url": direct_url or signed_media_url(request, clean_id),
-            "format": "aac",
+            "url": direct_url or signed_media_url(request, f"high_{clean_id}"),
+            "format": "m4a",
             "codec": "aac",
             "mimeType": "audio/mp4",
             "audioQuality": "320kbps AAC",
-            "bitrate": 320
+            "bitrate": 320,
+            "sampleRate": 44100,
+            "audioModes": ["STEREO"]
         }
