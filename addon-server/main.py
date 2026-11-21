@@ -795,6 +795,16 @@ def get_debug(bench: int = 0):
             b_timings["native_ret"] = r_nat.returncode
             tmp_native.unlink(missing_ok=True)
 
+            # Fast FLAC with -lpc_type none
+            t0 = time.time()
+            tmp_fast = CACHE_DIR / "bench_fast.flac"
+            cmd_fast = [FFMPEG_EXE, "-y", "-threads", "0", "-i", str(tmp_in), "-c:a", "flac", "-sample_fmt", "s16", "-lpc_type", "none", "-compression_level", "0", str(tmp_fast)]
+            r_fast = subprocess.run(cmd_fast, capture_output=True, text=True)
+            b_timings["transcode_fast_sec"] = round(time.time() - t0, 3)
+            b_timings["fast_size_mb"] = round(tmp_fast.stat().st_size / 1024 / 1024, 2) if tmp_fast.exists() else 0
+            b_timings["fast_ret"] = r_fast.returncode
+            tmp_fast.unlink(missing_ok=True)
+
             # 3. Local transcode Atmos (eac3)
             t0 = time.time()
             tmp_atm = CACHE_DIR / "bench_atm.mp4"
