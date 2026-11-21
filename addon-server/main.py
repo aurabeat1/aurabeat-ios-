@@ -319,7 +319,7 @@ def decrypt_jiosaavn_url(enc_url: str) -> str:
 
 ACTIVE_TRANSCODES = set()
 TRANSCODE_LOCK = threading.Lock()
-TRANSCODE_SEMAPHORE = threading.Semaphore(1)
+TRANSCODE_SEMAPHORE = threading.Semaphore(3)
 
 def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Path]:
     """Transcodes a source audio stream into target quality and caches on disk."""
@@ -340,27 +340,17 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             return out_path
         tmp_path = CACHE_DIR / f"{clean_id}_{tier}_{os.getpid()}_{time.time_ns()}.tmp.{out_ext}"
 
-        # 1. Fast local download of raw source audio via urllib (~0.5s on Render)
+        # Fast direct streaming transcode without blocking on urllib download
         local_raw = CACHE_DIR / f"{clean_id}.raw.mp4"
-        if not local_raw.exists() or local_raw.stat().st_size < 1000:
-            tmp_raw = CACHE_DIR / f"{clean_id}_{os.getpid()}_{time.time_ns()}.tmp.raw.mp4"
-            req = urllib.request.Request(raw_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-            with urllib.request.urlopen(req, timeout=12) as r, open(tmp_raw, "wb") as f:
-                f.write(r.read())
-            if tmp_raw.exists() and tmp_raw.stat().st_size > 1000:
-                try:
-                    tmp_raw.replace(local_raw)
-                except Exception:
-                    pass
-
-        input_src = str(local_raw) if local_raw.exists() and local_raw.stat().st_size > 1000 else raw_url
-
+        input_src = str(local_raw) if (local_raw.exists() and local_raw.stat().st_size > 1000) else raw_url
+        input_args = ["-y", "-threads", "0"]
+        if input_src.startswith("http"):
+            input_args.extend(["-headers", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n"])
+        input_args.extend(["-i", input_src])
 
         if tier == "atmos":
             cmd = [
-                FFMPEG_EXE, "-y",
-                "-threads", "0",
-                "-i", input_src,
+                FFMPEG_EXE, *input_args,
                 "-c:a", "eac3",
                 "-b:a", "768k",
                 "-ar", "48000",
@@ -369,9 +359,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             ]
         elif tier == "cd":
             cmd = [
-                FFMPEG_EXE, "-y",
-                "-threads", "0",
-                "-i", input_src,
+                FFMPEG_EXE, *input_args,
                 "-c:a", "flac",
                 "-sample_fmt", "s16",
                 "-ar", "44100",
@@ -380,9 +368,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             ]
         elif tier == "low":
             cmd = [
-                FFMPEG_EXE, "-y",
-                "-threads", "0",
-                "-i", input_src,
+                FFMPEG_EXE, *input_args,
                 "-c:a", "aac",
                 "-b:a", "64k",
                 "-ar", "44100",
@@ -391,9 +377,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             ]
         else:  # hires (default for lossless - FLAC 24-bit PCM)
             cmd = [
-                FFMPEG_EXE, "-y",
-                "-threads", "0",
-                "-i", input_src,
+                FFMPEG_EXE, *input_args,
                 "-c:a", "flac",
                 "-sample_fmt", "s32",
                 "-bits_per_raw_sample", "24",
@@ -401,7 +385,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
                 str(tmp_path)
             ]
 
-        # Acquire semaphore so at most 1 ffmpeg process runs at full CPU speed
+        # Run ffmpeg directly
         with TRANSCODE_SEMAPHORE:
             res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=25)
 
@@ -729,16 +713,7 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
             local_raw = CACHE_DIR / f"{clean_id}.raw.mp4"
             if local_raw.exists() and local_raw.stat().st_size > 1000:
                 return FileResponse(local_raw, media_type="audio/mp4")
-            try:
-                tmp_raw = CACHE_DIR / f"{clean_id}_{os.getpid()}_{time.time_ns()}.tmp.raw.mp4"
-                req = urllib.request.Request(raw_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-                with urllib.request.urlopen(req, timeout=10) as r, open(tmp_raw, "wb") as f:
-                    f.write(r.read())
-                if tmp_raw.exists() and tmp_raw.stat().st_size > 1000:
-                    tmp_raw.replace(local_raw)
-                    return FileResponse(local_raw, media_type="audio/mp4")
-            except Exception as e:
-                print(f"Direct raw fetch failed: {e}")
+            # Immediate redirect to high-speed CDN stream without blocking on server-side download
             return RedirectResponse(url=raw_url, status_code=307)
 
         tier = "hires"
@@ -764,18 +739,17 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
         # Trigger transcode immediately in background thread if not already running
         threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, tier), daemon=True).start()
 
-        # Poll up to 5.0 seconds for the genuine transcode to complete (AuraBeat firstBytesTimeout is 6.0s)
+        # Poll up to 5.7 seconds for the genuine transcode to complete (AuraBeat firstBytesTimeout is 6.0s; direct FFmpeg takes ~1.7s)
         t0 = time.time()
-        while time.time() - t0 < 5.0:
+        while time.time() - t0 < 5.7:
             if cached_file.exists() and cached_file.stat().st_size > 1000:
                 return FileResponse(cached_file, media_type=media_type)
-            time.sleep(0.025)
+            time.sleep(0.02)
 
         if cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
 
-        # If transcode took longer than 5.0s, return 503 so AVPlayer / HTTPAudioSource can retry cleanly
-        # NEVER return mismatched files (like a 2-minute fixture) which cause AudioCacheError.contentChanged!
+        # If transcode took longer than 5.7s, return 503 so AVPlayer / HTTPAudioSource can retry cleanly
         raise HTTPException(status_code=503, detail="Audio transcoding in progress, please retry")
 
     raise HTTPException(status_code=404, detail="Track audio not found")
@@ -1029,35 +1003,38 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             or "spatial" in query.lower()
         )
 
-        if has_atmos_query:
-            songs.extend([atmos_track, hires_track, high_track])
-        elif wants_high:
-            songs.extend([high_track, hires_track, atmos_track])
+        if wants_high:
+            songs.append(high_track)
+        elif has_atmos_query:
+            songs.extend([atmos_track, hires_track])
         elif wants_lossless:
-            songs.extend([hires_track, atmos_track, high_track])
+            if wants_atmos:
+                songs.extend([hires_track, atmos_track])
+            else:
+                songs.append(hires_track)
         elif wants_atmos:
-            songs.extend([atmos_track, hires_track, high_track])
+            songs.extend([atmos_track, hires_track])
         else:
-            songs.extend([hires_track, high_track, atmos_track])
+            songs.extend([hires_track, high_track])
 
-    # Pre-transcode the top candidate in background so it is ready on tap instantly
+    # Pre-transcode top candidates in background so they are ready on tap instantly
     if songs:
-        top_song = songs[0]
-        top_raw_url = top_song.get("rawStreamURL")
-        top_id = top_song.get("id", "")
-        clean_top_id = (
-            top_id.replace("hires_", "")
-            .replace("atmos_", "")
-            .replace("cd_", "")
-            .replace("low_", "")
-            .replace("high_", "")
-            .replace("aac_", "")
-        )
-        if top_raw_url:
-            if top_id.startswith("hires_"):
-                threading.Thread(target=transcode_to_quality, args=(top_raw_url, clean_top_id, "hires"), daemon=True).start()
-            elif top_id.startswith("atmos_"):
-                threading.Thread(target=transcode_to_quality, args=(top_raw_url, clean_top_id, "atmos"), daemon=True).start()
+        for top_song in songs[:2]:
+            top_raw_url = top_song.get("rawStreamURL")
+            top_id = top_song.get("id", "")
+            clean_top_id = (
+                top_id.replace("hires_", "")
+                .replace("atmos_", "")
+                .replace("cd_", "")
+                .replace("low_", "")
+                .replace("high_", "")
+                .replace("aac_", "")
+            )
+            if top_raw_url:
+                if top_id.startswith("hires_"):
+                    threading.Thread(target=transcode_to_quality, args=(top_raw_url, clean_top_id, "hires"), daemon=True).start()
+                elif top_id.startswith("atmos_"):
+                    threading.Thread(target=transcode_to_quality, args=(top_raw_url, clean_top_id, "atmos"), daemon=True).start()
 
     return songs
 
