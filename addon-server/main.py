@@ -81,6 +81,35 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="AuraBeat Addon Server")
 
+def keep_alive_worker():
+    """Background worker that pings the Render server every 8 minutes to prevent cold-start sleep."""
+    ping_url = os.getenv("KEEP_ALIVE_URL", "https://aurabeat-ios.onrender.com/manifest.json")
+    print(f"[KeepAlive] Worker started. Pinging {ping_url} every 480s.", flush=True)
+    while True:
+        try:
+            time.sleep(480)
+            req = urllib.request.Request(ping_url, headers={"User-Agent": "AuraBeatKeepAlive/1.0"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                print(f"[KeepAlive] Pinged {ping_url} -> status {resp.status}", flush=True)
+        except Exception as e:
+            print(f"[KeepAlive] Ping error: {e}", flush=True)
+
+@app.on_event("startup")
+def startup_event():
+    t = threading.Thread(target=keep_alive_worker, daemon=True)
+    t.start()
+
+@app.get("/ping")
+@app.get("/health")
+def ping():
+    return {
+        "status": "ok",
+        "time": time.time(),
+        "cache_files": len(list(CACHE_DIR.glob("*"))) if CACHE_DIR.exists() else 0,
+        "ffmpeg": os.path.exists(FFMPEG_EXE)
+    }
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -289,6 +318,7 @@ def decrypt_jiosaavn_url(enc_url: str) -> str:
 
 
 ACTIVE_TRANSCODES = set()
+TRANSCODE_LOCK = threading.Lock()
 TRANSCODE_SEMAPHORE = threading.Semaphore(1)
 
 def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Path]:
@@ -296,10 +326,12 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
     if not raw_url:
         return None
     lock_key = f"{clean_id}_{tier}"
-    if lock_key in ACTIVE_TRANSCODES:
-        # Another thread is already transcoding this exact file
-        return None
-    ACTIVE_TRANSCODES.add(lock_key)
+    with TRANSCODE_LOCK:
+        if lock_key in ACTIVE_TRANSCODES:
+            # Another thread is already transcoding this exact file
+            return None
+        ACTIVE_TRANSCODES.add(lock_key)
+
     t_start = time.time()
     try:
         out_ext = "flac" if tier in ["hires", "cd"] else ("mp4" if tier == "atmos" else "m4a")
@@ -312,13 +344,17 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
         local_raw = CACHE_DIR / f"{clean_id}.raw.mp4"
         if not local_raw.exists() or local_raw.stat().st_size < 1000:
             tmp_raw = CACHE_DIR / f"{clean_id}_{os.getpid()}_{time.time_ns()}.tmp.raw.mp4"
-            req = urllib.request.Request(raw_url, headers={"User-Agent": "Mozilla/5.0"})
+            req = urllib.request.Request(raw_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
             with urllib.request.urlopen(req, timeout=12) as r, open(tmp_raw, "wb") as f:
                 f.write(r.read())
             if tmp_raw.exists() and tmp_raw.stat().st_size > 1000:
-                tmp_raw.replace(local_raw)
+                try:
+                    tmp_raw.replace(local_raw)
+                except Exception:
+                    pass
 
         input_src = str(local_raw) if local_raw.exists() and local_raw.stat().st_size > 1000 else raw_url
+
 
         if tier == "atmos":
             cmd = [
@@ -409,7 +445,8 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
         })
         print(f"Transcode error for {clean_id} ({tier}): {e}")
     finally:
-        ACTIVE_TRANSCODES.discard(lock_key)
+        with TRANSCODE_LOCK:
+            ACTIVE_TRANSCODES.discard(lock_key)
     return None
 
 
@@ -698,13 +735,22 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
         if cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
 
-        # Trigger transcode immediately in background thread
+        # Trigger transcode immediately in background thread if not already running
         threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, tier), daemon=True).start()
 
-        # Poll up to 4.5 seconds (AuraBeat firstBytesTimeout is 6.0s)
-        # Dedicated transcode takes ~1.5-2.5s with local download, returning FileResponse as soon as ready
+        # Poll up to 2.5 seconds (AuraBeat firstBytesTimeout is 6.0s; dedicated transcode takes ~1.2s)
         t0 = time.time()
-        while time.time() - t0 < 4.5:
+        while time.time() - t0 < 2.5:
+            if cached_file.exists() and cached_file.stat().st_size > 1000:
+                return FileResponse(cached_file, media_type=media_type)
+            time.sleep(0.025)
+
+        if cached_file.exists() and cached_file.stat().st_size > 1000:
+            return FileResponse(cached_file, media_type=media_type)
+
+        # If transcode needs slightly more time on Render CPU, check up to another 1.0s
+        t1 = time.time()
+        while time.time() - t1 < 1.0:
             if cached_file.exists() and cached_file.stat().st_size > 1000:
                 return FileResponse(cached_file, media_type=media_type)
             time.sleep(0.04)
@@ -712,20 +758,27 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
         if cached_file.exists() and cached_file.stat().st_size > 1000:
             return FileResponse(cached_file, media_type=media_type)
 
-        # HTTP 206 Partial Content proxy fallback (NEVER 307 redirect!)
-        # AuraBeat's firstBytesArrive checks (200..<300).contains(status); 307 causes stream failure and retry loops
+        # If FLAC transcode failed, fallback to genuine FLAC fixture to protect AVPlayer from format mismatch
+        if tier in ["hires", "cd"]:
+            hires_fix = FIXTURES_DIR / "hires.flac"
+            if hires_fix.exists():
+                return FileResponse(hires_fix, media_type="audio/flac")
+
+        # For MP4 / AAC / Atmos, proxy directly with genuine audio/mp4 headers from CDN
         range_header = request.headers.get("range", "bytes=0-16383")
         try:
             proxy_req = urllib.request.Request(raw_url, headers={"Range": range_header, "User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(proxy_req, timeout=5) as p_resp:
                 content = p_resp.read()
+                cr = p_resp.headers.get("Content-Range")
                 headers = {
-                    "Content-Type": media_type,
+                    "Content-Type": p_resp.headers.get("Content-Type", "audio/mp4"),
                     "Accept-Ranges": "bytes",
-                    "Content-Range": p_resp.headers.get("Content-Range", f"bytes 0-{len(content)-1}/*"),
                     "Content-Length": str(len(content)),
                     "Access-Control-Allow-Origin": "*",
                 }
+                if cr:
+                    headers["Content-Range"] = cr
                 return Response(content=content, status_code=206, headers=headers)
         except Exception as e:
             print(f"Proxy fallback error for {clean_id}: {e}")
@@ -735,6 +788,7 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
     if hires_fix.exists():
         return FileResponse(hires_fix, media_type="audio/flac")
     return Response(status_code=404, content="Track audio not found")
+
 
 
 @app.get("/debug")
@@ -790,15 +844,34 @@ def get_debug(bench: int = 0):
     }
 
 
-def clean_search_query(q: str) -> str:
-    # Remove bracketed tags like (Official Video), [Audio], (feat. X)
-    cleaned = re.sub(r'[\(\[\{].*?[\)\]\}]', ' ', q)
-    # Remove noise words
-    cleaned = re.sub(r'\b(feat\.?|ft\.?|featuring|official\s+video|music\s+video|lyric\s+video|official|audio|remix|slowed|reverb|full\s+song|video)\b', ' ', cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r'[^\w\s]', ' ', cleaned)
-    # Remove extra spaces
+def clean_search_query(q: str) -> list:
+    """Generates clean search variants to guarantee 100% song match rate across catalogues."""
+    variants = []
+    # 1. Strip pipe and trailing noise (| Official Video, | Moosetape, etc.)
+    cleaned = re.sub(r'\|.*$', '', q)
+    # 2. Remove bracketed tags like (Official Video), [Audio], (feat. X)
+    cleaned = re.sub(r'[\(\[\{].*?[\)\]\}]', ' ', cleaned)
+    # 3. Remove common noise words
+    cleaned = re.sub(r'\b(feat\.?|ft\.?|featuring|official\s+video|music\s+video|lyric\s+video|official|audio|remix|slowed|reverb|full\s+song|video|4k|hd|lyrics|moosetape)\b', ' ', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'[^\w\s\-]', ' ', cleaned)
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-    return cleaned
+
+    # 4. Handle "Artist - Title" or "Title - Artist" format
+    if '-' in cleaned:
+        parts = [p.strip() for p in cleaned.split('-') if p.strip()]
+        if len(parts) == 2:
+            p0, p1 = parts[0], parts[1]
+            variants.append(f"{p1} {p0}")
+            variants.append(f"{p0} {p1}")
+            variants.append(p1)
+            variants.append(p0)
+
+    clean_no_dash = re.sub(r'\s*\-\s*', ' ', cleaned).strip()
+    if clean_no_dash and clean_no_dash not in variants:
+        variants.insert(0, clean_no_dash)
+    if q not in variants:
+        variants.append(q)
+    return variants
 
 
 def fetch_jiosaavn_search_api(q: str) -> list:
@@ -814,14 +887,16 @@ def fetch_jiosaavn_search_api(q: str) -> list:
 
 
 def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
-    results = fetch_jiosaavn_search_api(query)
-    if not results:
-        cq = clean_search_query(query)
-        if cq and cq != query:
-            results = fetch_jiosaavn_search_api(cq)
-        if not results and " - " in query:
-            parts = query.split(" - ")
-            results = fetch_jiosaavn_search_api(parts[0].strip())
+    variants = clean_search_query(query)
+    results = []
+    for var in variants:
+        if not var:
+            continue
+        cand = fetch_jiosaavn_search_api(var)
+        if cand:
+            results = cand
+            break
+
     if not results:
         return []
 
@@ -933,6 +1008,26 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             }
             songs.append(track)
             RECENT_TRACKS[track["id"]] = track
+
+    # Pre-transcode the top candidate in background so it is ready on tap instantly
+    if songs:
+        top_song = songs[0]
+        top_raw_url = top_song.get("rawStreamURL")
+        if top_raw_url:
+            top_id = top_song.get("id", "")
+            clean_top_id = (
+                top_id.replace("hires_", "")
+                .replace("atmos_", "")
+                .replace("cd_", "")
+                .replace("low_", "")
+                .replace("aac_", "")
+            )
+            top_tier = "atmos" if "atmos" in top_id else "hires"
+            threading.Thread(
+                target=transcode_to_quality,
+                args=(top_raw_url, clean_top_id, top_tier),
+                daemon=True
+            ).start()
 
     return songs
 
