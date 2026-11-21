@@ -319,7 +319,7 @@ def decrypt_jiosaavn_url(enc_url: str) -> str:
 
 ACTIVE_TRANSCODES = set()
 TRANSCODE_LOCK = threading.Lock()
-TRANSCODE_SEMAPHORE = threading.Semaphore(3)
+TRANSCODE_SEMAPHORE = threading.Semaphore(1)
 
 def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Path]:
     """Transcodes a source audio stream into target quality and caches on disk."""
@@ -340,13 +340,21 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
             return out_path
         tmp_path = CACHE_DIR / f"{clean_id}_{tier}_{os.getpid()}_{time.time_ns()}.tmp.{out_ext}"
 
-        # Fast direct streaming transcode without blocking on urllib download
+        # 1. Fast local download of raw source audio via urllib (~0.3s on Render)
         local_raw = CACHE_DIR / f"{clean_id}.raw.mp4"
+        if not local_raw.exists() or local_raw.stat().st_size < 1000:
+            tmp_raw = CACHE_DIR / f"{clean_id}_{os.getpid()}_{time.time_ns()}.tmp.raw.mp4"
+            req = urllib.request.Request(raw_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            try:
+                with urllib.request.urlopen(req, timeout=8) as r, open(tmp_raw, "wb") as f:
+                    f.write(r.read())
+                if tmp_raw.exists() and tmp_raw.stat().st_size > 1000:
+                    tmp_raw.replace(local_raw)
+            except Exception as e:
+                print(f"Direct raw download error: {e}")
+
         input_src = str(local_raw) if (local_raw.exists() and local_raw.stat().st_size > 1000) else raw_url
-        input_args = ["-y", "-threads", "0"]
-        if input_src.startswith("http"):
-            input_args.extend(["-headers", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n"])
-        input_args.extend(["-i", input_src])
+        input_args = ["-y", "-threads", "0", "-i", input_src]
 
         if tier == "atmos":
             cmd = [
@@ -780,20 +788,24 @@ def get_debug(bench: int = 0):
         if tmp_in.exists():
             t0 = time.time()
             tmp_native = CACHE_DIR / "bench_native.flac"
-            cmd_nat = [FFMPEG_EXE, "-y", "-i", str(tmp_in), "-c:a", "flac", "-sample_fmt", "s32", "-bits_per_raw_sample", "24", "-compression_level", "0", str(tmp_native)]
+            cmd_nat = [FFMPEG_EXE, "-y", "-threads", "0", "-i", str(tmp_in), "-c:a", "flac", "-sample_fmt", "s32", "-bits_per_raw_sample", "24", "-compression_level", "0", str(tmp_native)]
             r_nat = subprocess.run(cmd_nat, capture_output=True, text=True)
             b_timings["transcode_native_sec"] = round(time.time() - t0, 3)
             b_timings["native_size_mb"] = round(tmp_native.stat().st_size / 1024 / 1024, 2) if tmp_native.exists() else 0
+            b_timings["native_ret"] = r_nat.returncode
             tmp_native.unlink(missing_ok=True)
 
-            # 3. Local transcode FLAC 24-bit 96kHz
+            # 3. Local transcode Atmos (eac3)
             t0 = time.time()
-            tmp_96k = CACHE_DIR / "bench_96k.flac"
-            cmd_96 = [FFMPEG_EXE, "-y", "-i", str(tmp_in), "-c:a", "flac", "-sample_fmt", "s32", "-bits_per_raw_sample", "24", "-ar", "96000", "-compression_level", "0", str(tmp_96k)]
-            r_96 = subprocess.run(cmd_96, capture_output=True, text=True)
-            b_timings["transcode_96k_sec"] = round(time.time() - t0, 3)
-            b_timings["96k_size_mb"] = round(tmp_96k.stat().st_size / 1024 / 1024, 2) if tmp_96k.exists() else 0
-            tmp_96k.unlink(missing_ok=True)
+            tmp_atm = CACHE_DIR / "bench_atm.mp4"
+            cmd_atm = [FFMPEG_EXE, "-y", "-threads", "0", "-i", str(tmp_in), "-c:a", "eac3", "-b:a", "768k", "-ar", "48000", "-movflags", "+faststart", str(tmp_atm)]
+            r_atm = subprocess.run(cmd_atm, capture_output=True, text=True)
+            b_timings["transcode_atmos_sec"] = round(time.time() - t0, 3)
+            b_timings["atmos_size_mb"] = round(tmp_atm.stat().st_size / 1024 / 1024, 2) if tmp_atm.exists() else 0
+            b_timings["atmos_ret"] = r_atm.returncode
+            if r_atm.returncode != 0:
+                b_timings["atmos_err"] = r_atm.stderr[-300:]
+            tmp_atm.unlink(missing_ok=True)
 
             tmp_in.unlink(missing_ok=True)
 
@@ -1016,25 +1028,6 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             songs.extend([atmos_track, hires_track])
         else:
             songs.extend([hires_track, high_track])
-
-    # Pre-transcode top candidates in background so they are ready on tap instantly
-    if songs:
-        for top_song in songs[:2]:
-            top_raw_url = top_song.get("rawStreamURL")
-            top_id = top_song.get("id", "")
-            clean_top_id = (
-                top_id.replace("hires_", "")
-                .replace("atmos_", "")
-                .replace("cd_", "")
-                .replace("low_", "")
-                .replace("high_", "")
-                .replace("aac_", "")
-            )
-            if top_raw_url:
-                if top_id.startswith("hires_"):
-                    threading.Thread(target=transcode_to_quality, args=(top_raw_url, clean_top_id, "hires"), daemon=True).start()
-                elif top_id.startswith("atmos_"):
-                    threading.Thread(target=transcode_to_quality, args=(top_raw_url, clean_top_id, "atmos"), daemon=True).start()
 
     return songs
 
