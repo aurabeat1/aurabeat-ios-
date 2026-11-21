@@ -1,0 +1,98 @@
+name: AuraBeat iOS Build & IPA Generation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build AuraBeat iOS & Generate IPA
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: |
+          if ls -d /Applications/Xcode_16*.app 1>/dev/null 2>&1; then
+            XCODE_DIR=$(ls -d /Applications/Xcode_16*.app | tail -1)
+            sudo xcode-select -s "$XCODE_DIR/Contents/Developer"
+          elif [ -d "/Applications/Xcode.app" ]; then
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          fi
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Configure Git for ONNX Runtime SPM Mirror
+        run: |
+          git config --global url."https://github.com/TypeWhisper/onnxruntime-swift-package-manager.git".insteadOf "https://github.com/microsoft/onnxruntime-swift-package-manager"
+          git config --global url."https://github.com/TypeWhisper/onnxruntime-swift-package-manager.git".insteadOf "https://github.com/microsoft/onnxruntime-swift-package-manager.git"
+
+      - name: Cache Swift Package Manager Checkouts
+        uses: actions/cache@v4
+        with:
+          path: .spm
+          key: spm-${{ runner.os }}-${{ hashFiles('AuraBeatKit/Package.resolved', 'AuraBeat.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - name: Make Scripts Executable
+        run: chmod +x scripts/*.sh
+
+      - name: Resolve SPM Dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies -workspace AuraBeat.xcworkspace -scheme AuraBeat
+
+      - name: Run AuraBeatKit Unit Tests
+        run: |
+          ./scripts/kit-test.sh
+
+      - name: Build iOS Simulator Target
+        run: |
+          ./scripts/app-build.sh
+
+      - name: Build Release IPA for iOS Device
+        run: |
+          ./scripts/make-ipa.sh
+
+      - name: Verify IPA Package & Entitlements
+        run: |
+          IPA_FILE=$(ls build/*.ipa | head -n 1)
+          if [ -f "$IPA_FILE" ]; then
+            echo "IPA generated successfully: $IPA_FILE"
+            ./scripts/verify-ipa.sh "$IPA_FILE"
+          else
+            echo "Error: IPA file was not generated." >&2
+            exit 1
+          fi
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AuraBeat-iOS-IPA
+          path: build/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Build & Verification Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AuraBeat-Build-Logs
+          path: |
+            .derived-release/Logs
+            .derived/Logs
+          if-no-files-found: ignore
+          retention-days: 7
