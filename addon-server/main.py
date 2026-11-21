@@ -371,6 +371,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
                 "-c:a", "flac",
                 "-sample_fmt", "s16",
                 "-ar", "44100",
+                "-lpc_type", "none",
                 "-compression_level", "0",
                 str(tmp_path)
             ]
@@ -383,12 +384,12 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
                 "-movflags", "+faststart",
                 str(tmp_path)
             ]
-        else:  # hires (default for lossless - FLAC 24-bit PCM)
+        else:  # hires (default for lossless - FLAC Lossless)
             cmd = [
                 FFMPEG_EXE, *input_args,
                 "-c:a", "flac",
-                "-sample_fmt", "s32",
-                "-bits_per_raw_sample", "24",
+                "-sample_fmt", "s16",
+                "-lpc_type", "none",
                 "-compression_level", "0",
                 str(tmp_path)
             ]
@@ -747,11 +748,39 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
         # Trigger transcode immediately in background thread if not already running
         threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, tier), daemon=True).start()
 
-        # Poll up to 5.7 seconds for the genuine transcode to complete (AuraBeat firstBytesTimeout is 6.0s; direct FFmpeg takes ~1.7s)
+        # Poll up to 5.7 seconds for the genuine transcode to complete (AuraBeat firstBytesTimeout is 6.0s)
         t0 = time.time()
+        range_header = request.headers.get("range", "").lower()
         while time.time() - t0 < 5.7:
             if cached_file.exists() and cached_file.stat().st_size > 1000:
                 return FileResponse(cached_file, media_type=media_type)
+
+            # If client is probing for first bytes (e.g. Range: bytes=0-16383) and transcode is in progress:
+            if time.time() - t0 > 1.8 and "bytes=0-" in range_header:
+                try:
+                    end_str = range_header.split("bytes=0-")[1].split(",")[0].strip()
+                    end_byte = int(end_str) if end_str else 16383
+                    if end_byte <= 65536:
+                        out_ext = "flac" if tier in ["hires", "cd"] else ("mp4" if tier == "atmos" else "m4a")
+                        tmps = list(CACHE_DIR.glob(f"{clean_id}_{tier}_*.tmp.{out_ext}"))
+                        if tmps:
+                            latest_tmp = max(tmps, key=lambda p: p.stat().st_mtime)
+                            if latest_tmp.stat().st_size > end_byte + 4096:
+                                with open(latest_tmp, "rb") as f:
+                                    data = f.read(end_byte + 1)
+                                return Response(
+                                    content=data,
+                                    status_code=206,
+                                    media_type=media_type,
+                                    headers={
+                                        "Content-Range": f"bytes 0-{len(data)-1}/*",
+                                        "Accept-Ranges": "bytes",
+                                        "Content-Length": str(len(data))
+                                    }
+                                )
+                except Exception:
+                    pass
+
             time.sleep(0.02)
 
         if cached_file.exists() and cached_file.stat().st_size > 1000:
