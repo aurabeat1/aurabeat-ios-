@@ -236,6 +236,24 @@ TRACK_CATALOG = [
         "mediaType": "audio/mp4"
     },
     {
+        "id": "track-expand-1",
+        "title": "Cosmic Drift (300% Stereo Expand)",
+        "artist": "AuraBeat Sound Lab",
+        "album": "Spatial Dimensions",
+        "duration": 120.0,
+        "format": "flac",
+        "audioQuality": "300% Stereo Expand (Spatial Audio 3.0x)",
+        "audioMode": "STEREO_EXPAND_300",
+        "audioModes": ["STEREO"],
+        "stereoExpand": 300,
+        "bitrate": 1411,
+        "sampleRate": 44100,
+        "bitDepth": 16,
+        "artworkURL": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500",
+        "file": "lossless.flac",
+        "mediaType": "audio/flac"
+    },
+    {
         "id": "track-low-1",
         "title": "Midnight Whisper (Data-Saver 64k)",
         "artist": "Lofi Chill Dreamer",
@@ -334,7 +352,7 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
 
     t_start = time.time()
     try:
-        out_ext = "flac" if tier in ["hires", "cd"] else ("mp4" if tier == "atmos" else "m4a")
+        out_ext = "flac" if tier in ["hires", "cd", "expand", "300"] else ("mp4" if tier == "atmos" else "m4a")
         out_path = CACHE_DIR / f"{clean_id}_{tier}.{out_ext}"
         if out_path.exists() and out_path.stat().st_size > 1000:
             return out_path
@@ -356,7 +374,19 @@ def transcode_to_quality(raw_url: str, clean_id: str, tier: str) -> Optional[Pat
         input_src = str(local_raw) if (local_raw.exists() and local_raw.stat().st_size > 1000) else raw_url
         input_args = ["-y", "-threads", "0", "-i", input_src]
 
-        if tier == "atmos":
+        if tier in ["expand", "300"]:
+            # Native 300% Stereo Expansion with 0.76 headroom protection
+            cmd = [
+                FFMPEG_EXE, *input_args,
+                "-af", "extrastereo=m=3.0,stereotools=mlev=0.76:slev=3.0",
+                "-c:a", "flac",
+                "-sample_fmt", "s16",
+                "-ar", "44100",
+                "-lpc_type", "none",
+                "-compression_level", "0",
+                str(tmp_path)
+            ]
+        elif tier == "atmos":
             cmd = [
                 FFMPEG_EXE, *input_args,
                 "-c:a", "eac3",
@@ -556,7 +586,8 @@ INDEX_HTML = """<!DOCTYPE html>
       <div class="search-box">
         <input type="text" id="query" class="search-input" placeholder="Search any song (e.g. Karan Aujla, Shubh, Sidhu Moose Wala)..." onkeydown="if(event.key==='Enter') searchTracks()">
         <select id="qualitySelect" style="background:#0c1220; border:1px solid var(--border); color:white; border-radius:8px; padding:0 12px; font-size:13px; outline:none; cursor:pointer;">
-          <option value="high" selected>High Quality (320k Direct)</option>
+          <option value="expand" selected>300% Stereo Expand (Spatial 3.0x)</option>
+          <option value="high">High Quality (320k Direct)</option>
           <option value="lossless">Hi-Res Lossless (FLAC 24-bit)</option>
           <option value="atmos">Dolby Atmos (Spatial)</option>
         </select>
@@ -567,13 +598,27 @@ INDEX_HTML = """<!DOCTYPE html>
       </div>
       <div class="player-section" id="playerWrap" style="display: none;">
         <div id="nowPlayingText" style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #60a5fa;"></div>
-        <audio id="audioPlayer" controls></audio>
+        <audio id="audioPlayer" controls crossorigin="anonymous"></audio>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:12px; background:#0c1220; padding:10px 14px; border-radius:8px; border:1px solid var(--border);">
+          <div>
+            <div style="font-size:13px; font-weight:600; color:#fff;">🔊 300% Stereo Expand (Web DSP Engine)</div>
+            <div style="font-size:11px; color:var(--subtext);">Real-time Mid/Side Spatial Expansion with Headroom Guard</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="range" id="stereoSlider" min="100" max="300" value="300" step="10" oninput="updateStereoExpand(this.value)" style="width:110px; cursor:pointer;">
+            <span id="stereoPercent" style="font-size:13px; font-weight:700; color:var(--accent); min-width:44px;">300%</span>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="card">
       <h2>⚡ Audio Quality Badges Supported</h2>
       <div class="quality-grid">
+        <div class="q-item">
+          <div class="title" style="color: #ec4899;">300% Stereo Expand</div>
+          <div class="detail">Spatial Audio Widened 3.0x</div>
+        </div>
         <div class="q-item">
           <div class="title" style="color: #f59e0b;">Hi-Res Lossless</div>
           <div class="detail">FLAC 24-bit / 96 kHz</div>
@@ -595,6 +640,69 @@ INDEX_HTML = """<!DOCTYPE html>
   </div>
 
   <script>
+    let audioCtx = null;
+    let sourceNode = null;
+    let splitter = null;
+    let merger = null;
+    let gLL = null, gRL = null, gLR = null, gRR = null;
+    let currentStereoPercent = 300;
+
+    function initWebAudio() {
+      if (audioCtx) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioCtx();
+        const player = document.getElementById('audioPlayer');
+        sourceNode = audioCtx.createMediaElementSource(player);
+
+        splitter = audioCtx.createChannelSplitter(2);
+        merger = audioCtx.createChannelMerger(2);
+
+        // Mid/Side matrix gains for hardware accelerated 300% stereo widen
+        gLL = audioCtx.createGain();
+        gRL = audioCtx.createGain();
+        gLR = audioCtx.createGain();
+        gRR = audioCtx.createGain();
+
+        sourceNode.connect(splitter);
+        splitter.connect(gLL, 0);
+        splitter.connect(gLR, 0);
+        splitter.connect(gRL, 1);
+        splitter.connect(gRR, 1);
+
+        gLL.connect(merger, 0, 0);
+        gRL.connect(merger, 0, 0);
+        gLR.connect(merger, 0, 1);
+        gRR.connect(merger, 0, 1);
+
+        merger.connect(audioCtx.destination);
+        applyStereoWidth(currentStereoPercent);
+      } catch (e) {
+        console.log("WebAudio DSP init error:", e);
+      }
+    }
+
+    function applyStereoWidth(percent) {
+      if (!gLL || !audioCtx) return;
+      const w = Math.max(1.0, Math.min(3.0, percent / 100.0));
+      const outGain = Math.max(1.0 - 0.12 * (w - 1.0), 0.5);
+      const mid = 0.5 * outGain;
+      const side = 0.5 * w * outGain;
+      const t = audioCtx.currentTime;
+      gLL.gain.setValueAtTime(mid + side, t);
+      gRL.gain.setValueAtTime(mid - side, t);
+      gLR.gain.setValueAtTime(mid - side, t);
+      gRR.gain.setValueAtTime(mid + side, t);
+    }
+
+    function updateStereoExpand(val) {
+      currentStereoPercent = parseInt(val);
+      document.getElementById('stereoPercent').innerText = currentStereoPercent + '%';
+      if (audioCtx) {
+        applyStereoWidth(currentStereoPercent);
+      }
+    }
+
     function copyUrl() {
       const url = document.getElementById('addonUrl').innerText;
       navigator.clipboard.writeText(url).then(() => {
@@ -638,12 +746,28 @@ INDEX_HTML = """<!DOCTYPE html>
       const qTier = document.getElementById('qualitySelect').value;
       text.innerText = 'Loading: ' + decodeURIComponent(title) + '...';
       pWrap.style.display = 'block';
+
+      player.onplay = () => {
+        if (!audioCtx) initWebAudio();
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      };
+
+      player.onerror = () => {
+        console.log("Audio decode error, auto-fallback to 300% Stereo Expand direct...");
+        if (player.src && player.src.includes("atmos")) {
+          player.src = player.src.replace("atmos_", "expand_");
+          player.play().catch(e => console.log("Fallback play err:", e));
+        }
+      };
+
       try {
         const r = await fetch('/stream/' + id + '?quality=' + qTier + '&atmos=auto');
         const data = await r.json();
         if (data.url) {
           player.src = data.url;
-          player.play();
+          player.play().catch(e => console.log("Autoplay blocked:", e));
           text.innerText = 'Now Playing: ' + decodeURIComponent(title) + ' (' + (data.audioQuality || data.format) + ')';
         } else {
           text.innerText = 'Failed to resolve stream URL';
@@ -705,6 +829,8 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
     clean_id = (
         track_id.replace("hires_", "")
         .replace("atmos_", "")
+        .replace("expand_", "")
+        .replace("300_", "")
         .replace("cd_", "")
         .replace("low_", "")
         .replace("high_", "")
@@ -732,6 +858,10 @@ def get_media(track_id: str, request: Request, exp: str = "", sig: str = ""):
             tier = "atmos"
             media_type = "audio/mp4"
             target_name = f"{clean_id}_atmos.mp4"
+        elif "expand" in track_id or "300" in track_id:
+            tier = "expand"
+            media_type = "audio/flac"
+            target_name = f"{clean_id}_expand.flac"
         elif "cd" in track_id:
             tier = "cd"
             media_type = "audio/flac"
@@ -1043,9 +1173,31 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             "rawStreamURL": stream_url
         }
 
+        # 300% Stereo Expand Track (Spatial Audio Widened 3.0x)
+        expand_track = {
+            "id": f"expand_{song_id}",
+            "title": f"{title} (300% Stereo Expand)",
+            "artist": artist_name,
+            "album": album_name,
+            "duration": duration,
+            "format": "flac",
+            "codec": "flac",
+            "mimeType": "audio/flac",
+            "audioQuality": "300% Stereo Expand (Spatial 3.0x)",
+            "bitrate": 1411,
+            "sampleRate": 44100,
+            "bitDepth": 16,
+            "audioModes": ["STEREO"],
+            "stereoExpand": 300,
+            "artworkURL": image,
+            "streamURL": stream_url,
+            "rawStreamURL": stream_url
+        }
+
         RECENT_TRACKS[high_track["id"]] = high_track
         RECENT_TRACKS[hires_track["id"]] = hires_track
         RECENT_TRACKS[atmos_track["id"]] = atmos_track
+        RECENT_TRACKS[expand_track["id"]] = expand_track
 
         # Order candidates based on requested quality
         has_atmos_query = (
@@ -1053,20 +1205,27 @@ def search_jiosaavn(query: str, quality: str = "lossless", atmos: str = "auto"):
             or "atmos" in query.lower()
             or "spatial" in query.lower()
         )
+        has_expand_query = (
+            quality_lower in ["expand", "300", "300%"]
+            or "300" in query.lower()
+            or "expand" in query.lower()
+        )
 
-        if wants_high:
+        if has_expand_query:
+            songs.extend([expand_track, hires_track, high_track])
+        elif wants_high:
             songs.append(high_track)
         elif has_atmos_query:
-            songs.extend([atmos_track, hires_track])
+            songs.extend([atmos_track, expand_track, hires_track])
         elif wants_lossless:
             if wants_atmos:
-                songs.extend([hires_track, atmos_track])
+                songs.extend([hires_track, expand_track, atmos_track])
             else:
-                songs.append(hires_track)
+                songs.extend([hires_track, expand_track])
         elif wants_atmos:
-            songs.extend([atmos_track, hires_track])
+            songs.extend([atmos_track, expand_track, hires_track])
         else:
-            songs.extend([hires_track, high_track])
+            songs.extend([hires_track, expand_track, high_track])
 
     return songs
 
@@ -1116,6 +1275,8 @@ def stream(
     clean_id = (
         track_id.replace("hires_", "")
         .replace("atmos_", "")
+        .replace("expand_", "")
+        .replace("300_", "")
         .replace("cd_", "")
         .replace("low_", "")
         .replace("high_", "")
@@ -1128,7 +1289,23 @@ def stream(
     raw_url = (track or {}).get("rawStreamURL") or (track or {}).get("streamURL")
     quality_lower = quality.lower()
 
-    if track_id.startswith("high_") or (quality_lower in ["high", "medium", "standard"] and not track_id.startswith("hires_") and not track_id.startswith("atmos_")):
+    if track_id.startswith("expand_") or track_id.startswith("300_") or quality_lower in ["expand", "300", "300%"]:
+        if raw_url:
+            threading.Thread(target=transcode_to_quality, args=(raw_url, clean_id, "expand"), daemon=True).start()
+        media_url = signed_media_url(request, f"expand_{clean_id}")
+        return {
+            "url": media_url,
+            "format": "flac",
+            "codec": "flac",
+            "mimeType": "audio/flac",
+            "audioQuality": "300% Stereo Expand (Spatial Audio 3.0x)",
+            "bitrate": 1411,
+            "sampleRate": 44100,
+            "bitDepth": 16,
+            "audioModes": ["STEREO"],
+            "stereoExpand": 300
+        }
+    elif track_id.startswith("high_") or (quality_lower in ["high", "medium", "standard"] and not track_id.startswith("hires_") and not track_id.startswith("atmos_")):
         # Direct High Quality 320kbps AAC (0ms latency, zero transcoding, line-rate stream)
         direct_url = raw_url
         return {

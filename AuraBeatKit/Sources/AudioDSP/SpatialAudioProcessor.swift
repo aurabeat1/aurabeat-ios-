@@ -94,7 +94,7 @@ public final class SpatialAudioProcessor: FloatAudioProcessor, @unchecked Sendab
         let rs = render
         rs.pointee.sampleRate = sampleRate
         rs.pointee.channelCount = channelCount
-        guard channelCount == 2, sampleRate > 0 else {
+        guard channelCount >= 2, sampleRate > 0 else {
             releaseDelay()
             rs.pointee.delayIndex = 0
             rs.pointee.lowpassLeft = 0
@@ -119,7 +119,7 @@ public final class SpatialAudioProcessor: FloatAudioProcessor, @unchecked Sendab
     /// Widens [channels] in place. Headroom is preserved: nothing is clamped to ±1.
     public func process(_ channels: DSPChannels) {
         let frameCount = channels.frameCount
-        guard enabledFlag.load() != 0, frameCount > 0, channels.channelCount == 2 else { return }
+        guard enabledFlag.load() != 0, frameCount > 0, channels.channelCount >= 2 else { return }
         let rs = render
         let delaySize = rs.pointee.delaySize
         guard delaySize > 0, let delayLeft = rs.pointee.delayLeft, let delayRight = rs.pointee.delayRight else { return }

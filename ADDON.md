@@ -52,6 +52,7 @@ An AuraBeat Addon is an HTTP microservice that powers search, quality upgrades, 
 
 | Tier | Format | Codec | Sample Rate / Bit Depth | Bitrate | Identifiers |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **300% Stereo Expand** | `flac` | `flac` | 44.1 kHz / 16-bit | ~1411 kbps | `audioQuality: "300% Stereo Expand (Spatial 3.0x)"`, `stereoExpand: 300` |
 | **Hi-Res Lossless** | `flac` | `flac` | 96 kHz / 24-bit | ~4608 kbps | `audioQuality: "FLAC 24-bit / 96 kHz"` |
 | **Lossless CD** | `flac` | `flac` | 44.1 kHz / 16-bit | ~1411 kbps | `audioQuality: "FLAC 16-bit / 44.1 kHz"` |
 | **Dolby Atmos** | `eac3-joc` | `eac3-joc` | 48 kHz | 768 kbps | `audioMode: "DOLBY_ATMOS"`, `atmos: true` |

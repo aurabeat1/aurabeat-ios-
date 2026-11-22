@@ -123,15 +123,16 @@ extension AudioPlayerEngine {
         return entry
     }
 
-    /// Where `entry`'s audio should go as things stand. Atmos never gets a tap; lossless gets one
-    /// only while the DSP chain would change it; everything else is processed (the tap also feeds
-    /// the live silence detector).
+    /// Where `entry`'s audio should go as things stand. Atmos enters the DSP tap when the listener
+    /// has enabled spatial widening (300% stereo expand) or EQ; otherwise it stays bitstream passthrough.
+    /// Lossless gets a tap only while the DSP chain would change it; everything else is processed (the
+    /// tap also feeds the live silence detector).
     func desiredSignalPath(for entry: DeckEntry, on deck: PlaybackDeck) -> PlaybackSignalPath {
+        let alters = deck.binding.processor?.altersSignal(for: entry.item, loudnessDb: entry.loudnessDb) ?? false
         switch entry.content {
         case .dolbyAtmos:
-            return .spatialPassthrough
+            return alters ? .processed : .spatialPassthrough
         case .lossless:
-            let alters = deck.binding.processor?.altersSignal(for: entry.item, loudnessDb: entry.loudnessDb) ?? false
             return alters ? .processed : .bitTransparent
         case .lossy:
             return .processed

@@ -79,7 +79,7 @@ public final class DSPChain: FloatAudioProcessor, @unchecked Sendable {
     /// Pushes every listener setting onto the chain. Safe from any thread.
     public func apply(_ settings: AudioDSPSettings) {
         equalizer.apply(settings.equalizer)
-        spatial.isEnabled = settings.spatialAudio
+        spatial.isEnabled = settings.spatialAudio || settings.stereoExpandPercent > 100
         spatial.widthGain = Float(settings.stereoExpandPercent) / 100.0
         loudness.setEnabled(settings.loudnessNormalization)
         silenceDetector.isEnabled = settings.skipSilence
@@ -110,8 +110,8 @@ public final class DSPChain: FloatAudioProcessor, @unchecked Sendable {
         transition.configure(sampleRate: sampleRate, channelCount: channelCount)
         silenceDetector.configure(sampleRate: sampleRate, channelCount: channelCount)
         loudness.configure(sampleRate: sampleRate, channelCount: channelCount)
-        if channelCount != 2 {
-            Self.log.info("DSP configured for \(channelCount) channel(s) at \(sampleRate) Hz; spatial widening needs stereo and stays off")
+        if channelCount < 2 {
+            Self.log.info("DSP configured for \(channelCount) channel(s) at \(sampleRate) Hz; spatial widening needs at least stereo and stays off")
         }
     }
 
@@ -264,7 +264,7 @@ public struct SignalAlteration: Equatable, Sendable {
     public init(settings: AudioDSPSettings, loudness: LoudnessReadout) {
         self.init(loudnessActive: settings.loudnessNormalization && loudness.isActive,
                   equalizerActive: settings.equalizer.isEnabled,
-                  spatialAudioActive: settings.spatialAudio)
+                  spatialAudioActive: settings.spatialAudio || settings.stereoExpandPercent > 100)
     }
 
     public var isAltered: Bool { !alteringStages.isEmpty }

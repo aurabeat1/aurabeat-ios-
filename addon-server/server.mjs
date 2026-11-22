@@ -52,6 +52,21 @@ export function mediaAllowed(id, exp, sig) {
 // ── Sample track database showcasing all audio qualities
 const TRACK_CATALOG = [
   {
+    id: 'track-expand-1',
+    title: 'Cosmic Drift (300% Stereo Expand)',
+    artist: 'AuraBeat Sound Lab',
+    album: 'Spatial Dimensions',
+    duration: 120.0,
+    format: 'flac',
+    audioQuality: '300% Stereo Expand (Spatial 3.0x)',
+    audioMode: 'STEREO_EXPAND_300',
+    stereoExpand: 300,
+    bitrate: 1411,
+    sampleRate: 44100,
+    bitDepth: 16,
+    artwork: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500',
+  },
+  {
     id: 'track-hires-1',
     title: 'Aura of Serenity (Hi-Res Lossless)',
     artist: 'AuraBeat Orchestra',
@@ -145,6 +160,7 @@ app.get('/media/:id', (req, res) => {
   }
 
   const fileMap = {
+    'track-expand-1': { file: 'hires.flac', type: 'audio/flac' },
     'track-hires-1': { file: 'hires.flac', type: 'audio/flac' },
     'track-lossless-1': { file: 'lossless.flac', type: 'audio/flac' },
     'track-atmos-1': { file: 'atmos.mp4', type: 'audio/mp4' },
