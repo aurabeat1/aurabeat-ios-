@@ -98,8 +98,39 @@ final class StereoWidenTests: XCTestCase {
         XCTAssertNotEqual(DSPTestSignals.run(spatial, input, sampleRate: sampleRate, configure: false), input)
     }
 
-    private func enabledSpatial() -> SpatialAudioProcessor {
-        let spatial = SpatialAudioProcessor()
+    func testMidIsKeptAndSideIsWidenedThreeTimes() {
+        let spatial = enabledSpatial(widthGain: 3.0)
+        let frames = 600
+        var input = [Float](repeating: 0, count: frames * 2)
+        for frame in 0..<frames {
+            input[frame * 2] = Float(sin(Double(frame) * 0.05)) * 0.6
+            input[frame * 2 + 1] = Float(cos(Double(frame) * 0.021)) * 0.3
+        }
+        let output = DSPTestSignals.run(spatial, input, sampleRate: sampleRate, configure: false)
+        let outGain = SpatialAudioProcessor.outputGain(for: 3.0)
+        for frame in 0..<frames {
+            let left = input[frame * 2], right = input[frame * 2 + 1]
+            let mid = (left + right) * 0.5
+            let side = (left - right) * 0.5 * 3.0
+            XCTAssertEqual(output[frame * 2], (mid + side) * outGain, accuracy: 1e-6)
+            XCTAssertEqual(output[frame * 2 + 1], (mid - side) * outGain, accuracy: 1e-6)
+        }
+    }
+
+    func testDynamicWidthGainAdjustmentUpdatesProcessing() {
+        let spatial = enabledSpatial(widthGain: 1.0)
+        let input = [Float]([0.8, 0.2, 0.4, 0.6])
+        let output100 = DSPTestSignals.run(spatial, input, sampleRate: sampleRate, configure: false)
+        XCTAssertEqual(output100[0], input[0], accuracy: 1e-6)
+        XCTAssertEqual(output100[1], input[1], accuracy: 1e-6)
+
+        spatial.widthGain = 3.0
+        let output300 = DSPTestSignals.run(spatial, input, sampleRate: sampleRate, configure: false)
+        XCTAssertNotEqual(output100, output300)
+    }
+
+    private func enabledSpatial(widthGain: Float = 2.5) -> SpatialAudioProcessor {
+        let spatial = SpatialAudioProcessor(widthGain: widthGain)
         spatial.configure(sampleRate: sampleRate, channelCount: 2)
         spatial.isEnabled = true
         XCTAssertTrue(spatial.appliesToConfiguredFormat)

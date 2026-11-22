@@ -27,6 +27,7 @@ extension AppSettings {
         case directSourceStreamLegacy = "direct_source_stream"
         case directSourceStream = "direct_source_stream_mode"
         case spatialAudio = "spatial_audio"
+        case stereoExpandPercent = "stereo_expand_percent"
         case playbackSpeed = "playback_speed"
         case autoplay = "autoplay"
         case shuffleEnabled = "shuffle_enabled"
@@ -136,7 +137,7 @@ extension AppSettings {
             switch self {
             case .upgradeLengthSlackSeconds, .crossfadeSeconds, .repeatMode, .equalizerToneX,
                  .equalizerToneY, .lyricsOffsetMs, .scrobbleMinDuration, .scrobbleDelaySeconds,
-                 .lastVersionCode:
+                 .lastVersionCode, .stereoExpandPercent:
                 return .int
             case .audioCacheLimitBytes:
                 return .long

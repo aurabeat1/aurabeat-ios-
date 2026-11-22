@@ -240,6 +240,15 @@ struct SettingsScreen: View {
             SettingsToggleRow(symbol: "dot.radiowaves.left.and.right", title: L10n.spatialAudio,
                               subtitle: player.signalPath == .spatialPassthrough ? L10n.spatialAudioAtmosSubtitle : L10n.spatialAudioSubtitle,
                               isOn: $settings.spatialAudio)
+            if settings.spatialAudio {
+                SettingsSliderRow(symbol: "arrow.left.and.right",
+                                  title: L10n.pipelineStereoExpand,
+                                  value: "\(settings.stereoExpandPercent)%",
+                                  sliderValue: Binding(get: { Double(settings.stereoExpandPercent) },
+                                                       set: { settings.stereoExpandPercent = Int($0.rounded()) }),
+                                  range: Double(AppSettings.stereoExpandRange.lowerBound)...Double(AppSettings.stereoExpandRange.upperBound),
+                                  step: 10)
+            }
         case .equalizer:
             SettingsRow(symbol: "slider.vertical.3", title: L10n.equalizer, subtitle: L10n.equalizerSubtitle) {
                 router.open(.equalizer)

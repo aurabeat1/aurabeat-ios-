@@ -153,6 +153,18 @@ public final class AppSettings {
         didSet { write(.spatialAudio, spatialAudio) }
     }
 
+    public static let stereoExpandRange: ClosedRange<Int> = 100...300
+    public static let defaultStereoExpandPercent: Int = 300
+
+    /// How wide the stereo image gets when spatial audio is enabled (100% to 300%).
+    public var stereoExpandPercent: Int = AppSettings.defaultStereoExpandPercent {
+        didSet {
+            let clamped = stereoExpandPercent.clamped(to: Self.stereoExpandRange)
+            if clamped != stereoExpandPercent { stereoExpandPercent = clamped; return }
+            write(.stereoExpandPercent, stereoExpandPercent)
+        }
+    }
+
     /// Playback rate, clamped to ``playbackSpeedRange``.
     public var playbackSpeed: Float = 1.0 {
         didSet {
@@ -899,6 +911,7 @@ public final class AppSettings {
         migrateDirectSourceStream()
         directSourceStream = readEnum(.directSourceStream, default: .off)
         spatialAudio = readBool(.spatialAudio, default: false)
+        stereoExpandPercent = readInt(.stereoExpandPercent, default: Self.defaultStereoExpandPercent)
         playbackSpeed = readFloat(.playbackSpeed, default: 1.0)
         autoplay = readBool(.autoplay, default: true)
         shuffleEnabled = readBool(.shuffleEnabled, default: false)

@@ -15,12 +15,16 @@
 /// multichannel local file.
 public final class SpatialAudioProcessor: FloatAudioProcessor, @unchecked Sendable {
 
-    /// How much wider the stereo image gets. 1.0 = untouched. The audio
-    /// pipeline readout shows it as "250%".
-    public static let widthGain: Float = 2.5
+    /// How much wider the stereo image gets. 1.0 = untouched (100%).
+    /// Default is 3.0 (300% stereo expansion).
+    public static let defaultWidthGain: Float = 3.0
+    public static let widthGainRange: ClosedRange<Float> = 1.0...3.0
 
-    /// Make-up attenuation after widening, so the wider side energy doesn't clip.
-    public static let outputGain: Float = 0.82
+    /// Width gain multiplier for backwards compatibility.
+    public static let widthGain: Float = 3.0
+
+    /// Default make-up attenuation after 300% widening.
+    public static let outputGain: Float = outputGain(for: defaultWidthGain)
 
     /// How much of the delayed, low-passed opposite channel gets mixed back in.
     public static let crossfeedGain: Float = 0.2
@@ -30,6 +34,12 @@ public final class SpatialAudioProcessor: FloatAudioProcessor, @unchecked Sendab
 
     /// Cross-feed delay.
     public static let delayMilliseconds = 15
+
+    /// Make-up attenuation for a given width gain so side energy doesn't clip.
+    /// At 1.0 -> 1.0, at 2.5 -> 0.82, at 3.0 -> 0.76.
+    public static func outputGain(for width: Float) -> Float {
+        max(1.0 - 0.12 * (width.clamped(to: widthGainRange) - 1.0), 0.5)
+    }
 
     private struct RenderState {
         var sampleRate: Double = 0
@@ -44,11 +54,14 @@ public final class SpatialAudioProcessor: FloatAudioProcessor, @unchecked Sendab
 
     private let enabledFlag = AtomicWord(0)
     private let appliesFlag = AtomicWord(0)
+    private let gainsWord: AtomicWord
     private let render: UnsafeMutablePointer<RenderState>
 
-    public init() {
+    public init(widthGain: Float = defaultWidthGain) {
         render = .allocate(capacity: 1)
         render.initialize(to: RenderState())
+        let initialClamped = widthGain.clamped(to: Self.widthGainRange)
+        gainsWord = AtomicWord(FloatPair.pack(initialClamped, Self.outputGain(for: initialClamped)))
     }
 
     deinit {
@@ -60,6 +73,16 @@ public final class SpatialAudioProcessor: FloatAudioProcessor, @unchecked Sendab
     public var isEnabled: Bool {
         get { enabledFlag.load() != 0 }
         set { enabledFlag.store(newValue ? 1 : 0) }
+    }
+
+    /// Width gain multiplier (1.0 = 100% to 3.0 = 300%). Safe from any thread.
+    public var widthGain: Float {
+        get { FloatPair.unpack(gainsWord.load()).0 }
+        set {
+            let clamped = newValue.clamped(to: Self.widthGainRange)
+            let outGain = Self.outputGain(for: clamped)
+            gainsWord.store(FloatPair.pack(clamped, outGain))
+        }
     }
 
     /// Whether the configured stream is one the widening applies to (stereo).
@@ -104,8 +127,7 @@ public final class SpatialAudioProcessor: FloatAudioProcessor, @unchecked Sendab
         let left = channels.base(of: 0)
         let right = channels.base(of: 1)
         let stride = channels.stride
-        let widthGain = Self.widthGain
-        let outputGain = Self.outputGain
+        let (widthGain, outputGain) = FloatPair.unpack(gainsWord.load())
         let crossfeedGain = Self.crossfeedGain
         let lowpass = Self.lowpassCoefficient
 

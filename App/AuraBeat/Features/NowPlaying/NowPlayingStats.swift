@@ -240,6 +240,7 @@ enum PlayerPipelineWording {
             equalizerEnabled: settings.equalizerEnabled && tapped,
             equalizerDescription: settings.equalizerEnabled ? L10n.equalizer : nil,
             spatialAudio: settings.spatialAudio && tapped,
+            stereoExpandPercent: settings.stereoExpandPercent,
             loudnessNormalization: settings.loudnessNormalization && tapped,
             playbackSpeed: settings.playbackSpeed,
             tapped: tapped

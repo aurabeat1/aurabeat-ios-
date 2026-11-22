@@ -103,6 +103,7 @@ extension AudioDSPSettings {
                 bandsDb: settings.equalizerBands
             ),
             spatialAudio: settings.spatialAudio,
+            stereoExpandPercent: settings.stereoExpandPercent,
             loudnessNormalization: settings.loudnessNormalization,
             skipSilence: false
         )

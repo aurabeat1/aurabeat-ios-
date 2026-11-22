@@ -404,6 +404,11 @@ final class AudioSignalAlterationTests: XCTestCase {
     func testSpatialAudioAltersTheSignal() {
         let pipeline = AudioPipeline.build(stats: flacCD, output: outputAt(44_100), dsp: .init(spatialAudio: true, loudnessNormalization: false))
         XCTAssertEqual(pipeline.bitExactVerdict, "No — spatial audio")
+        XCTAssertEqual(pipeline.stage(.dsp)?.value("Stereo Expand"), "300%")
+    }
+
+    func testCustomStereoExpandPercent() {
+        let pipeline = AudioPipeline.build(stats: flacCD, output: outputAt(44_100), dsp: .init(spatialAudio: true, stereoExpandPercent: 250, loudnessNormalization: false))
         XCTAssertEqual(pipeline.stage(.dsp)?.value("Stereo Expand"), "250%")
     }
 

@@ -58,6 +58,19 @@ struct EqualizerScreen: View {
                     BalanceControl(balance: $settings.equalizerBalance)
                 }
 
+                SettingsGroup(header: L10n.pipelineStereoExpand, footer: L10n.spatialAudioSubtitle) {
+                    SettingsToggleRow(symbol: "dot.radiowaves.left.and.right", title: L10n.spatialAudio, isOn: $settings.spatialAudio)
+                    if settings.spatialAudio {
+                        SettingsSliderRow(symbol: "arrow.left.and.right",
+                                          title: L10n.pipelineStereoExpand,
+                                          value: "\(settings.stereoExpandPercent)%",
+                                          sliderValue: Binding(get: { Double(settings.stereoExpandPercent) },
+                                                               set: { settings.stereoExpandPercent = Int($0.rounded()) }),
+                                          range: Double(AppSettings.stereoExpandRange.lowerBound)...Double(AppSettings.stereoExpandRange.upperBound),
+                                          step: 10)
+                    }
+                }
+
                 // A stream that never reaches the app's tap (Dolby Atmos passthrough, or a tap the
                 // system refused) has no samples for a filter to touch. Said plainly rather than
                 // left as a control that answers every touch and changes no sound.

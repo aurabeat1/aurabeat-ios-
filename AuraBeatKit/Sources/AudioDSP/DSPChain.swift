@@ -80,6 +80,7 @@ public final class DSPChain: FloatAudioProcessor, @unchecked Sendable {
     public func apply(_ settings: AudioDSPSettings) {
         equalizer.apply(settings.equalizer)
         spatial.isEnabled = settings.spatialAudio
+        spatial.widthGain = Float(settings.stereoExpandPercent) / 100.0
         loudness.setEnabled(settings.loudnessNormalization)
         silenceDetector.isEnabled = settings.skipSilence
     }
@@ -204,6 +205,9 @@ public struct AudioDSPSettings: Equatable, Sendable {
     /// active track is Dolby Atmos; that decision belongs to whoever builds this.
     public var spatialAudio: Bool
 
+    /// Stereo expand width percentage (100% to 300%). Default is 300%.
+    public var stereoExpandPercent: Int
+
     /// On by default, as on Android.
     public var loudnessNormalization: Bool
 
@@ -211,10 +215,12 @@ public struct AudioDSPSettings: Equatable, Sendable {
 
     public init(equalizer: EqualizerSettings = EqualizerSettings(),
                 spatialAudio: Bool = false,
+                stereoExpandPercent: Int = 300,
                 loudnessNormalization: Bool = true,
                 skipSilence: Bool = false) {
         self.equalizer = equalizer
         self.spatialAudio = spatialAudio
+        self.stereoExpandPercent = stereoExpandPercent
         self.loudnessNormalization = loudnessNormalization
         self.skipSilence = skipSilence
     }

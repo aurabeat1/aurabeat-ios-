@@ -80,6 +80,7 @@ public struct AudioPipeline: Hashable, Sendable {
         /// preset list lives in AudioDSP, so the app supplies the name.
         public var equalizerDescription: String?
         public var spatialAudio: Bool
+        public var stereoExpandPercent: Int
         public var loudnessNormalization: Bool
         public var playbackSpeed: Float
         /// Whether the item runs through the app's processing tap at all (the engine's
@@ -90,6 +91,7 @@ public struct AudioPipeline: Hashable, Sendable {
             equalizerEnabled: Bool = false,
             equalizerDescription: String? = nil,
             spatialAudio: Bool = false,
+            stereoExpandPercent: Int = 300,
             loudnessNormalization: Bool = true,
             playbackSpeed: Float = 1,
             tapped: Bool = true
@@ -97,6 +99,7 @@ public struct AudioPipeline: Hashable, Sendable {
             self.equalizerEnabled = equalizerEnabled
             self.equalizerDescription = equalizerDescription
             self.spatialAudio = spatialAudio
+            self.stereoExpandPercent = stereoExpandPercent
             self.loudnessNormalization = loudnessNormalization
             self.playbackSpeed = playbackSpeed
             self.tapped = tapped
@@ -202,7 +205,7 @@ public struct AudioPipeline: Hashable, Sendable {
             Row("Gain", loudnessGainText),
             Row("Measured", output.loudnessLufs.map { "\(signed($0)) LUFS" } ?? dash),
             Row("EQ Preset", equalizerActive ? (dsp.equalizerDescription ?? "On") : "Flat"),
-            Row("Stereo Expand", spatialActive ? "250%" : "100%"),
+            Row("Stereo Expand", spatialActive ? "\(dsp.stereoExpandPercent)%" : "100%"),
             Row("Speed", speedActive ? "\(speedText(dsp.playbackSpeed)) (time-stretched)" : "1×"),
             Row("Buffers", buffersText(output: output) ?? dash),
             Row("Output API", output.sink.isEmpty ? "Core Audio" : output.sink),
