@@ -87,12 +87,13 @@ final class RangeServer: @unchecked Sendable {
     }
 
     private func respond(to request: URLRequest) throws -> URLProtocolStub.Response {
-        let state = lock.withLock { (_offline, refused, hosted, _maxBytesPerResponse, _emptyBodies, _ignoreRanges) }
-        let (offline, refused, hosted, maxBytes, empty, ignoreRanges) = state
+        let (offline, refusedMap, hostedMap, maxBytes, empty, ignoreRanges): (Bool, [String: Int], [String: Hosted], Int?, Bool, Bool) = lock.withLock {
+            (self._offline, self.refused, self.hosted, self._maxBytesPerResponse, self._emptyBodies, self._ignoreRanges)
+        }
         if offline { throw URLError(.notConnectedToInternet) }
         guard let url = request.url else { throw URLError(.badURL) }
-        if let status = refused[url.absoluteString] { return .status(status) }
-        guard let file = hosted[url.absoluteString] else { return .status(404) }
+        if let status = refusedMap[url.absoluteString] { return .status(status) }
+        guard let file = hostedMap[url.absoluteString] else { return .status(404) }
         var headers: [String: String] = ["Accept-Ranges": "bytes"]
         if let mime = file.mimeType { headers["Content-Type"] = mime }
         let total = Int64(file.data.count)
