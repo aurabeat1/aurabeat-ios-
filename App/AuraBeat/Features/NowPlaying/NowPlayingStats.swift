@@ -239,7 +239,7 @@ enum PlayerPipelineWording {
         return AudioPipeline.DSPSettings(
             equalizerEnabled: settings.equalizerEnabled && tapped,
             equalizerDescription: settings.equalizerEnabled ? L10n.equalizer : nil,
-            spatialAudio: settings.spatialAudio && tapped,
+            spatialAudio: (settings.spatialAudio || settings.stereoExpandPercent > 100) && tapped,
             stereoExpandPercent: settings.stereoExpandPercent,
             loudnessNormalization: settings.loudnessNormalization && tapped,
             playbackSpeed: settings.playbackSpeed,

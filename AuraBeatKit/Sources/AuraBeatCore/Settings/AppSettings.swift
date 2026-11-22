@@ -150,7 +150,12 @@ public final class AppSettings {
 
     /// The app's own stereo widening (not object-based spatial audio).
     public var spatialAudio: Bool = false {
-        didSet { write(.spatialAudio, spatialAudio) }
+        didSet {
+            write(.spatialAudio, spatialAudio)
+            if spatialAudio && stereoExpandPercent <= 100 {
+                stereoExpandPercent = Self.defaultStereoExpandPercent
+            }
+        }
     }
 
     public static let stereoExpandRange: ClosedRange<Int> = 100...300
@@ -162,6 +167,11 @@ public final class AppSettings {
             let clamped = stereoExpandPercent.clamped(to: Self.stereoExpandRange)
             if clamped != stereoExpandPercent { stereoExpandPercent = clamped; return }
             write(.stereoExpandPercent, stereoExpandPercent)
+            if stereoExpandPercent > 100 && !spatialAudio {
+                spatialAudio = true
+            } else if stereoExpandPercent == 100 && spatialAudio {
+                spatialAudio = false
+            }
         }
     }
 

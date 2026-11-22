@@ -58,19 +58,6 @@ struct EqualizerScreen: View {
                     BalanceControl(balance: $settings.equalizerBalance)
                 }
 
-                SettingsGroup(header: L10n.pipelineStereoExpand, footer: L10n.spatialAudioSubtitle) {
-                    SettingsToggleRow(symbol: "dot.radiowaves.left.and.right", title: L10n.spatialAudio, isOn: $settings.spatialAudio)
-                    if settings.spatialAudio {
-                        SettingsSliderRow(symbol: "arrow.left.and.right",
-                                          title: L10n.pipelineStereoExpand,
-                                          value: "\(settings.stereoExpandPercent)%",
-                                          sliderValue: Binding(get: { Double(settings.stereoExpandPercent) },
-                                                               set: { settings.stereoExpandPercent = Int($0.rounded()) }),
-                                          range: Double(AppSettings.stereoExpandRange.lowerBound)...Double(AppSettings.stereoExpandRange.upperBound),
-                                          step: 10)
-                    }
-                }
-
                 // A stream that never reaches the app's tap (Dolby Atmos passthrough, or a tap the
                 // system refused) has no samples for a filter to touch. Said plainly rather than
                 // left as a control that answers every touch and changes no sound.
@@ -86,6 +73,41 @@ struct EqualizerScreen: View {
             .allowsHitTesting(enabled)
             .opacity(enabled ? 1 : 0.38)
             .animation(.easeInOut(duration: 0.22), value: enabled)
+
+            SettingsGroup(header: L10n.pipelineStereoExpand, footer: L10n.spatialAudioSubtitle) {
+                SettingsToggleRow(
+                    symbol: "dot.radiowaves.left.and.right",
+                    title: L10n.pipelineStereoExpand,
+                    isOn: Binding(
+                        get: { settings.spatialAudio },
+                        set: { on in
+                            settings.spatialAudio = on
+                            if on && settings.stereoExpandPercent <= 100 {
+                                settings.stereoExpandPercent = 300
+                            }
+                        }
+                    )
+                )
+                SettingsSliderRow(
+                    symbol: "arrow.left.and.right",
+                    title: L10n.pipelineStereoExpand,
+                    value: "\(settings.stereoExpandPercent)%",
+                    sliderValue: Binding(
+                        get: { Double(settings.stereoExpandPercent) },
+                        set: { raw in
+                            let val = Int(raw.rounded())
+                            settings.stereoExpandPercent = val
+                            if val > 100 && !settings.spatialAudio {
+                                settings.spatialAudio = true
+                            } else if val == 100 && settings.spatialAudio {
+                                settings.spatialAudio = false
+                            }
+                        }
+                    ),
+                    range: Double(AppSettings.stereoExpandRange.lowerBound)...Double(AppSettings.stereoExpandRange.upperBound),
+                    step: 10
+                )
+            }
         }
         .settingsGroupList()
         .navigationTitle(L10n.equalizer)

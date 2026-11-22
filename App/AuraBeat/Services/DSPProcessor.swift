@@ -183,7 +183,7 @@ final class AudioDSPProcessor: PlaybackAudioProcessor, @unchecked Sendable {
     }
 
     static func alters(settings: AudioDSPSettings, automix: Bool, loudnessDb: Double?) -> Bool {
-        if settings.equalizer.isEnabled || settings.spatialAudio || automix { return true }
+        if settings.equalizer.isEnabled || settings.spatialAudio || settings.stereoExpandPercent > 100 || automix { return true }
         let readout = LoudnessNormalizer.readout(enabled: settings.loudnessNormalization, loudnessDb: loudnessDb)
         if let gain = readout.gainDb, gain != 0 { return true }
         return false

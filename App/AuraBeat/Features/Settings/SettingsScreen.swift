@@ -237,18 +237,33 @@ struct SettingsScreen: View {
         case .spatialAudio:
             // Held off for the length of an Atmos track (the object mix is spatialized already);
             // said on the row because the switch stays where the listener left it.
-            SettingsToggleRow(symbol: "dot.radiowaves.left.and.right", title: L10n.spatialAudio,
+            SettingsToggleRow(symbol: "dot.radiowaves.left.and.right",
+                              title: L10n.pipelineStereoExpand,
                               subtitle: player.signalPath == .spatialPassthrough ? L10n.spatialAudioAtmosSubtitle : L10n.spatialAudioSubtitle,
-                              isOn: $settings.spatialAudio)
-            if settings.spatialAudio {
-                SettingsSliderRow(symbol: "arrow.left.and.right",
-                                  title: L10n.pipelineStereoExpand,
-                                  value: "\(settings.stereoExpandPercent)%",
-                                  sliderValue: Binding(get: { Double(settings.stereoExpandPercent) },
-                                                       set: { settings.stereoExpandPercent = Int($0.rounded()) }),
-                                  range: Double(AppSettings.stereoExpandRange.lowerBound)...Double(AppSettings.stereoExpandRange.upperBound),
-                                  step: 10)
-            }
+                              isOn: Binding(
+                                get: { settings.spatialAudio },
+                                set: { on in
+                                    settings.spatialAudio = on
+                                    if on && settings.stereoExpandPercent <= 100 {
+                                        settings.stereoExpandPercent = 300
+                                    }
+                                }
+                              ))
+            SettingsSliderRow(symbol: "arrow.left.and.right",
+                              title: L10n.pipelineStereoExpand,
+                              value: "\(settings.stereoExpandPercent)%",
+                              sliderValue: Binding(get: { Double(settings.stereoExpandPercent) },
+                                                   set: { raw in
+                                                       let val = Int(raw.rounded())
+                                                       settings.stereoExpandPercent = val
+                                                       if val > 100 && !settings.spatialAudio {
+                                                           settings.spatialAudio = true
+                                                       } else if val == 100 && settings.spatialAudio {
+                                                           settings.spatialAudio = false
+                                                       }
+                                                   }),
+                              range: Double(AppSettings.stereoExpandRange.lowerBound)...Double(AppSettings.stereoExpandRange.upperBound),
+                              step: 10)
         case .equalizer:
             SettingsRow(symbol: "slider.vertical.3", title: L10n.equalizer, subtitle: L10n.equalizerSubtitle) {
                 router.open(.equalizer)
