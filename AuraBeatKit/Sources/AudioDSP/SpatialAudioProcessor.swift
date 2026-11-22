@@ -197,3 +197,10 @@ public final class SpatialAudioProcessor: FloatAudioProcessor, @unchecked Sendab
         rs.pointee.delaySize = 0
     }
 }
+
+extension Comparable {
+    fileprivate func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
+    }
+}
+
