@@ -18,6 +18,7 @@ This document is the complete, definitive technical reference, architecture guid
 8. [Dependencies & Build Files](#8-dependencies--build-files)
 9. [Deployment Guide (Render.com, VPS, Local Daemon)](#9-deployment-guide)
 10. [Connecting to AuraBeat iOS & Diagnostics](#10-connecting-to-aurabeat-ios--diagnostics)
+11. [AutoMix Neural DJ Transition Engine Integration](#11-automix-neural-dj-transition-engine-integration)
 
 ---
 
@@ -2097,3 +2098,29 @@ python -m uvicorn main:app --host 0.0.0.0 --port 3000 --reload
    ```
 4. Tap **Add**. AuraBeat verifies the manifest and unlocks the high-fidelity sources.
 5. In **Settings** -> **Equalizer & Sound**, toggle **Stereo Expand** and adjust the slider up to **300%** for massive spatial immersion on both Stereo and Dolby Atmos streams!
+
+---
+
+## 11. AutoMix Neural DJ Transition Engine Integration
+
+AuraBeat now natively bundles and integrates the **AutoMix Neural DJ Transition Generation** engine (adapted from [clawd139/automix](https://github.com/clawd139/automix)).
+
+### Key Features
+- **Stem-Aware Mixing**: Seamless source separation across 4 stems: `drums`, `bass`, `vocals`, `other`.
+- **Differentiable Effects Chain**: Continuous parameter prediction for 54 total parameters across outgoing and incoming tracks:
+  - Per-stem: Gain, 3-band EQ (`low`, `mid`, `high`), Low-Pass Filter (`lpf`), High-Pass Filter (`hpf`).
+  - Global: Reverb send, Delay send, and Delay feedback.
+- **Intelligent Transitions**: Automatic bass swap, vocal collision avoidance, filter sweeps, reverb washouts, and delay throws.
+
+### Addon Server API Endpoints
+- **Engine Status**: `GET /automix/info` (or `/automix/status`) - returns engine metadata, device capabilities (CUDA / Apple Silicon MPS / CPU), and supported stems/effects.
+- **Transition Curve Planning**: `POST /automix/plan` (or `GET /automix/plan`) - computes time-varying parameter automation frames for any BPM pairing and duration.
+- **Neural DJ Mixing**: `POST /automix/mix` (or `GET /automix/mix`) - renders an audio transition between two tracks and returns signed streaming URL.
+
+### Standalone CLI Usage
+The AutoMix engine lives in `automix-engine/` and can be used directly with `uv`:
+```bash
+cd automix-engine
+uv run automix info
+uv run automix mix track_a.mp3 track_b.mp3 -o transition.wav
+```

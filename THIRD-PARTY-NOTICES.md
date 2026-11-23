@@ -33,6 +33,12 @@ A licence is given only where a licence file or a licence statement was found. W
 - Licence: MIT, as stated in the comment in `vocal_spectrogram.h` (for `openunmix/transforms.py`). Not checked against the project's own licence file.
 - Used in: `AuraBeatKit/Sources/AutomixAnalyzer/analyzer/vocal_spectrogram.{h,cpp}`, whose STFT front end follows Open-Unmix's `TorchSTFT`.
 
+### AutoMix Neural DJ Transition Engine
+
+- Project: [AutoMix](https://github.com/clawd139/automix) by Clawd (`clawd139@icloud.com`).
+- Licence: MIT, as stated in `pyproject.toml` and `README.md`.
+- Used in: `automix-engine/` and integrated into `addon-server/` (`main.py`, `server.mjs`, `manifest.json`). Provides neural DJ transition generation using conditional diffusion models, stem separation (demucs), and differentiable audio effects chains (per-stem gain, 3-band EQ, low-pass filter, high-pass filter, reverb send, delay send, and delay feedback).
+
 ## Models in this repository
 
 Both models are byte-identical to the copies in AuraBeat for Android (`app/src/main/assets/`). They are loaded by `AuraBeatKit/Sources/Automix/AutomixModelSession.swift`.

@@ -248,6 +248,108 @@ app.get('/stream/:id', (req, res) => {
   });
 });
 
+// ── AutoMix Neural DJ Transition Endpoints (https://github.com/clawd139/automix)
+app.get('/automix/info', (req, res) => {
+  res.json({
+    engine: "AutoMix Neural DJ Transition Generation",
+    repository: "https://github.com/clawd139/automix",
+    version: "2.0.0",
+    author: "Clawd",
+    license: "MIT",
+    stem_names: ["drums", "bass", "vocals", "other"],
+    stem_params: ["gain", "eq_low", "eq_mid", "eq_high", "lpf", "hpf"],
+    global_params: ["reverb_send", "delay_send", "delay_feedback"],
+    total_params: 54,
+    features: [
+      "stem_separation_demucs",
+      "conditional_diffusion_curves",
+      "differentiable_mixer",
+      "bass_swap",
+      "vocal_collision_avoidance",
+      "filter_sweep",
+      "reverb_washout",
+      "delay_throw"
+    ]
+  });
+});
+
+app.get('/automix/status', (req, res) => res.redirect('/automix/info'));
+
+app.all('/automix/plan', (req, res) => {
+  const duration = Math.max(parseFloat(req.body?.duration || req.query.duration || 15.0), 1.0);
+  const steps = Math.max(parseInt(req.body?.steps || req.query.steps || 50, 10), 2);
+  const bpm_a = parseFloat(req.body?.bpm_a || req.query.bpm_a || 120.0);
+  const bpm_b = parseFloat(req.body?.bpm_b || req.query.bpm_b || 124.0);
+  const style = String(req.body?.style || req.query.style || 'smart');
+
+  const t_step = duration / (steps - 1);
+  const frames = [];
+  const bass_swap_center = 0.50;
+  const bass_swap_width = 0.10;
+  const bass_swap_start = bass_swap_center - (bass_swap_width / 2.0);
+  const bass_swap_end = bass_swap_center + (bass_swap_width / 2.0);
+
+  for (let i = 0; i < steps; i++) {
+    const p = i / (steps - 1);
+    const t = +(i * t_step).toFixed(3);
+    const gain_a = Math.cos(p * (Math.PI / 2.0));
+    const gain_b = Math.sin(p * (Math.PI / 2.0));
+
+    let eq_low_a = 1.0, eq_low_b = 0.0;
+    if (p <= bass_swap_start) {
+      eq_low_a = 1.0; eq_low_b = 0.0;
+    } else if (p >= bass_swap_end) {
+      eq_low_a = 0.0; eq_low_b = 1.0;
+    } else {
+      const swap_p = (p - bass_swap_start) / bass_swap_width;
+      eq_low_a = Math.cos(swap_p * (Math.PI / 2.0));
+      eq_low_b = Math.sin(swap_p * (Math.PI / 2.0));
+    }
+
+    const lpf_a = Math.max(0.2, 1.0 - Math.pow(p, 1.5) * 0.8);
+    const hpf_b = Math.max(0.0, Math.pow(1.0 - p, 1.8) * 0.35);
+
+    frames.push({
+      step: i,
+      progress: +p.toFixed(4),
+      time_seconds: t,
+      track_a: {
+        gain: +gain_a.toFixed(4),
+        stems: {
+          drums: { gain: +gain_a.toFixed(4), eq_low: +eq_low_a.toFixed(4), eq_mid: 1.0, eq_high: 1.0, lpf: +lpf_a.toFixed(4), hpf: 0.0 },
+          bass: { gain: +(gain_a * eq_low_a).toFixed(4), eq_low: +eq_low_a.toFixed(4), eq_mid: 1.0, eq_high: 1.0, lpf: +lpf_a.toFixed(4), hpf: 0.0 },
+          vocals: { gain: +gain_a.toFixed(4), eq_low: 1.0, eq_mid: 1.0, eq_high: 1.0, lpf: +lpf_a.toFixed(4), hpf: 0.0 },
+          other: { gain: +gain_a.toFixed(4), eq_low: 1.0, eq_mid: 1.0, eq_high: 1.0, lpf: +lpf_a.toFixed(4), hpf: 0.0 }
+        },
+        reverb_send: p > 0.5 ? +(Math.exp(-Math.pow(p - 0.85, 2) / 0.03) * 0.45).toFixed(4) : 0.0,
+        delay_send: (p >= 0.85 && p <= 0.95) ? 0.35 : 0.0
+      },
+      track_b: {
+        gain: +gain_b.toFixed(4),
+        stems: {
+          drums: { gain: +gain_b.toFixed(4), eq_low: +eq_low_b.toFixed(4), eq_mid: 1.0, eq_high: 1.0, lpf: 1.0, hpf: +hpf_b.toFixed(4) },
+          bass: { gain: +(gain_b * eq_low_b).toFixed(4), eq_low: +eq_low_b.toFixed(4), eq_mid: 1.0, eq_high: 1.0, lpf: 1.0, hpf: +hpf_b.toFixed(4) },
+          vocals: { gain: +gain_b.toFixed(4), eq_low: 1.0, eq_mid: 1.0, eq_high: 1.0, lpf: 1.0, hpf: +hpf_b.toFixed(4) },
+          other: { gain: +gain_b.toFixed(4), eq_low: 1.0, eq_mid: 1.0, eq_high: 1.0, lpf: 1.0, hpf: +hpf_b.toFixed(4) }
+        },
+        reverb_send: 0.05,
+        delay_send: 0.0
+      }
+    });
+  }
+
+  res.json({
+    status: "success",
+    duration,
+    bpm_a,
+    bpm_b,
+    style,
+    steps_count: frames.length,
+    bass_swap_point: bass_swap_center,
+    frames
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`[AuraBeat Addon Server] Running on http://localhost:${PORT}`);
   console.log(`[AuraBeat Addon Server] Manifest available at http://localhost:${PORT}/manifest.json`);

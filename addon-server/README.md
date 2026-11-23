@@ -4,10 +4,12 @@ A high-performance addon server template for AuraBeat & BitChord supporting all 
 
 ## Supported Audio Qualities
 - **Hi-Res Lossless**: 24-bit / 96 kHz or 192 kHz FLAC (Studio Master quality)
+- **300% Stereo Expand**: Spatial Audio 3.0x Widening
 - **Lossless CD**: 16-bit / 44.1 kHz FLAC / ALAC
 - **Dolby Atmos / Spatial Audio**: Multi-channel E-AC-3 JOC
 - **High Quality**: 320 kbps AAC / MP3
 - **Standard**: 256 kbps AAC
+- **AutoMix Neural DJ Transitions**: Multi-stem differentiable transition generation (drums, bass, vocals, other)
 
 ---
 
