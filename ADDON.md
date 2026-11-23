@@ -2114,6 +2114,12 @@ AuraBeat now natively bundles and integrates two state-of-the-art neural music m
   - Global: Reverb send, Delay send, and Delay feedback.
 - **Intelligent Transitions**: Automatic bass swap, vocal collision avoidance, filter sweeps, reverb washouts, and delay throws.
 - **Sony Effect Normalization**: Normalizes wet multitrack features using average dataset statistics (`features_MUSDB18.npy`), allowing pre-trained neural networks (`ours_S_Lb`, `ours_S_pretrained`, `wun_S_Lb`) to perform professional automatic multitrack balance.
+- **Custom Select Your AutoMix (Real Work AutoMix)**: Explicit user selection of transition algorithm driving real-time audio DSP filtering in the Swift playback engine and Addon Server:
+  1. **Smart AI (`smart`)**: Automatic neural decision engine.
+  2. **Neural DJ Blend (`dj_blend`)**: Sharp beat-aligned bass swap handover cutting outgoing sub-bass (< 200 Hz) and locking in the incoming bassline.
+  3. **Neural DJ Filter Sweep (`dj_filter`)**: 24 dB/octave resonant low-pass sweep closing on outgoing track and high-pass opening on incoming track.
+  4. **Neural Stem & Vocal Safe (`stem_safe`)**: Midrange vocal clash avoidance ducking colliding vocal stems.
+  5. **Constant Power Crossfade (`equal_power`)**: Flat equal-power curve without filter coloration.
 
 ### Addon Server API Endpoints
 - **Engine Status**: `GET /automix/info` (or `/automix/status`) - returns engine metadata, device capabilities (CUDA / Apple Silicon MPS / CPU), and supported stems/effects.
@@ -2124,8 +2130,8 @@ AuraBeat now natively bundles and integrates two state-of-the-art neural music m
   - `/automix/download/fxnorm_ours` - Sony FxNorm CAFX TDCN-LSTM Model Weights (10.6 MB)
   - `/automix/download/fxnorm_dump` - Sony FxNorm Full Network Dump (10.6 MB)
   - `/automix/download/fxnorm_features` - MUSDB18 Feature Matrix (.npy)
-- **Transition Curve Planning**: `POST /automix/plan` (or `GET /automix/plan`) - computes time-varying parameter automation frames for any BPM pairing and duration.
-- **Neural DJ Mixing**: `POST /automix/mix` (or `GET /automix/mix`) - renders an audio transition between two tracks and returns signed streaming URL.
+- **Transition Curve Planning**: `POST /automix/plan` (or `GET /automix/plan?duration=15&style=dj_blend`) - computes time-varying parameter automation frames for any BPM pairing, duration, and transition style.
+- **Neural DJ Mixing**: `POST /automix/mix` (or `GET /automix/mix?track_a=...&track_b=...&duration=15&style=dj_blend`) - renders a real audio DSP transition between two tracks with style-specific filters and returns signed streaming URL.
 
 ### Standalone CLI Usage
 

@@ -18,6 +18,7 @@ extension AppSettings {
         case crossfadeSeconds = "crossfade_seconds"
         case smartFadeEnabled = "smart_fade_enabled"
         case automixPerformanceMode = "automix_performance_mode"
+        case automixMode = "automix_mode"
         case skipSilence = "skip_silence"
         case loudnessNormalization = "loudness_normalization"
         case dolbyAtmos = "dolby_atmos"
@@ -144,7 +145,7 @@ extension AppSettings {
             case .playbackSpeed, .equalizerBalance, .scrobbleDelayPercent:
                 return .float
             case .audioQualityLegacy, .audioQualityWifi, .audioQualityCellular, .downloadQuality,
-                 .directSourceStream, .automixPerformanceMode, .equalizerMode, .equalizerBands, .themeMode,
+                 .directSourceStream, .automixPerformanceMode, .automixMode, .equalizerMode, .equalizerBands, .themeMode,
                  .lastPlayerScreen, .translationLanguage, .lyricsSources, .lyricsSourcesSeen,
                  .lyricsSourceOrder, .localMusicSort, .downloadedMusicSort, .librarySort,
                  .detailSongSorts, .localMusicViewType, .downloadedMusicViewType,

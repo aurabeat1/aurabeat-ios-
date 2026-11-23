@@ -111,7 +111,7 @@ public enum TransitionFilterAutomation: Hashable, Sendable {
     var filtersAnything: Bool {
         switch self {
         case .none: return false
-        case .ride(let ride): return ride.style == .djBlend || ride.style == .djFilter
+        case .ride(let ride): return ride.style == .djBlend || ride.style == .djFilter || ride.vocalOverlap > 0
         case .keyframes(let incoming, let outgoing):
             return (incoming + outgoing).contains { !$0.cutoffs.isOpen }
         }

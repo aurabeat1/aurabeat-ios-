@@ -26,6 +26,7 @@ struct SettingsScreen: View {
     @State private var metered: Bool?
     @State private var picking: QualityTarget?
     @State private var pickingDownloadQuality = false
+    @State private var pickingAutomixMode = false
     @State private var pickingAutomixPerformance = false
     @State private var pickingDirectSourceStream = false
     @State private var pickingLanguage = false
@@ -100,6 +101,7 @@ struct SettingsScreen: View {
         }
         .sheet(item: $picking) { target in qualitySheet(target) }
         .sheet(isPresented: $pickingDownloadQuality) { downloadQualitySheet }
+        .sheet(isPresented: $pickingAutomixMode) { automixModeSheet }
         .sheet(isPresented: $pickingAutomixPerformance) { automixPerformanceSheet }
         .sheet(isPresented: $pickingDirectSourceStream) { directSourceStreamSheet }
         .sheet(isPresented: $pickingLanguage) {
@@ -225,6 +227,10 @@ struct SettingsScreen: View {
             SettingsToggleRow(symbol: "sparkles", title: L10n.automix,
                               subtitle: settings.smartFadeEnabled ? L10n.automixEnabledSubtitle : L10n.automixDisabledSubtitle,
                               isOn: $settings.smartFadeEnabled)
+        case .automixMode:
+            SettingsRow(symbol: "waveform.badge.magnifyingglass", title: L10n.automixStyle,
+                        subtitle: L10n.automixStyleSubtitle,
+                        value: settings.automixMode.settingsLabel) { pickingAutomixMode = true }
         case .automixPerformance:
             SettingsRow(symbol: "slider.horizontal.3", title: L10n.automixPerformance,
                         subtitle: L10n.automixPerformanceSubtitle,
@@ -482,6 +488,18 @@ struct SettingsScreen: View {
         ) { settings.directSourceStream = $0 }
     }
 
+    private var automixModeSheet: some View {
+        SettingsChoiceSheet(
+            symbol: "waveform.badge.magnifyingglass",
+            title: L10n.automixStyle,
+            subtitle: L10n.automixStyleSubtitle,
+            options: AutomixMode.allCases.map {
+                SettingsChoice(value: $0, label: $0.settingsLabel, detail: $0.settingsDetail)
+            },
+            selected: settings.automixMode
+        ) { settings.automixMode = $0 }
+    }
+
     private var automixPerformanceSheet: some View {
         SettingsChoiceSheet(
             symbol: "slider.horizontal.3",
@@ -569,6 +587,28 @@ extension AutomixPerformanceMode {
         case .efficient: return L10n.automixModeEfficientSubtitle
         case .balanced: return L10n.automixModeBalancedSubtitle
         case .performance: return L10n.automixModePerformanceSubtitle
+        }
+    }
+}
+
+extension AutomixMode {
+    var settingsLabel: String {
+        switch self {
+        case .smart: return L10n.automixStyleSmart
+        case .djBlend: return L10n.automixStyleDJBlend
+        case .djFilter: return L10n.automixStyleDJFilter
+        case .stemSafe: return L10n.automixStyleStemSafe
+        case .equalPower: return L10n.automixStyleEqualPower
+        }
+    }
+
+    var settingsDetail: String {
+        switch self {
+        case .smart: return L10n.automixStyleSmartSubtitle
+        case .djBlend: return L10n.automixStyleDJBlendSubtitle
+        case .djFilter: return L10n.automixStyleDJFilterSubtitle
+        case .stemSafe: return L10n.automixStyleStemSafeSubtitle
+        case .equalPower: return L10n.automixStyleEqualPowerSubtitle
         }
     }
 }

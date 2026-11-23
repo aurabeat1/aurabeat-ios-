@@ -376,12 +376,18 @@ app.all('/automix/plan', (req, res) => {
   const steps = Math.max(parseInt(req.body?.steps || req.query.steps || 50, 10), 2);
   const bpm_a = parseFloat(req.body?.bpm_a || req.query.bpm_a || 120.0);
   const bpm_b = parseFloat(req.body?.bpm_b || req.query.bpm_b || 124.0);
-  const style = String(req.body?.style || req.query.style || 'smart');
+  const rawStyle = String(req.body?.style || req.query.style || 'smart').toLowerCase().trim();
+
+  let normStyle = 'smart';
+  if (['djblend', 'blend', 'dj_blend'].includes(rawStyle)) normStyle = 'dj_blend';
+  else if (['djfilter', 'filter', 'dj_filter'].includes(rawStyle)) normStyle = 'dj_filter';
+  else if (['stemsafe', 'stem_safe', 'vocal_safe', 'vocalsafe'].includes(rawStyle)) normStyle = 'stem_safe';
+  else if (['equalpower', 'equal_power', 'flat', 'crossfade'].includes(rawStyle)) normStyle = 'equal_power';
 
   const t_step = duration / (steps - 1);
   const frames = [];
   const bass_swap_center = 0.50;
-  const bass_swap_width = 0.10;
+  const bass_swap_width = normStyle === 'dj_blend' ? 0.08 : 0.12;
   const bass_swap_start = bass_swap_center - (bass_swap_width / 2.0);
   const bass_swap_end = bass_swap_center + (bass_swap_width / 2.0);
 
@@ -392,18 +398,52 @@ app.all('/automix/plan', (req, res) => {
     const gain_b = Math.sin(p * (Math.PI / 2.0));
 
     let eq_low_a = 1.0, eq_low_b = 0.0;
-    if (p <= bass_swap_start) {
-      eq_low_a = 1.0; eq_low_b = 0.0;
-    } else if (p >= bass_swap_end) {
-      eq_low_a = 0.0; eq_low_b = 1.0;
-    } else {
-      const swap_p = (p - bass_swap_start) / bass_swap_width;
-      eq_low_a = Math.cos(swap_p * (Math.PI / 2.0));
-      eq_low_b = Math.sin(swap_p * (Math.PI / 2.0));
-    }
+    let lpf_a = 1.0, hpf_b = 0.0;
+    let vocal_duck_a = 1.0, vocal_duck_b = 1.0;
+    let rev_a = 0.0, del_a = 0.0;
 
-    const lpf_a = Math.max(0.2, 1.0 - Math.pow(p, 1.5) * 0.8);
-    const hpf_b = Math.max(0.0, Math.pow(1.0 - p, 1.8) * 0.35);
+    if (normStyle === 'equal_power') {
+      eq_low_a = 1.0; eq_low_b = 1.0;
+      lpf_a = 1.0; hpf_b = 0.0;
+      vocal_duck_a = 1.0; vocal_duck_b = 1.0;
+      rev_a = 0.0; del_a = 0.0;
+    } else if (normStyle === 'dj_filter') {
+      eq_low_a = p < 0.6 ? 1.0 : Math.cos((p - 0.6) / 0.4 * (Math.PI / 2.0));
+      eq_low_b = p < 0.4 ? 0.0 : Math.sin((p - 0.4) / 0.6 * (Math.PI / 2.0));
+      lpf_a = Math.max(0.12, 1.0 - Math.pow(p, 1.3) * 0.88);
+      hpf_b = Math.max(0.0, Math.pow(1.0 - p, 1.5) * 0.50);
+      rev_a = p > 0.5 ? Math.exp(-Math.pow(p - 0.88, 2) / 0.02) * 0.55 : 0.0;
+      del_a = (p >= 0.82 && p <= 0.96) ? 0.40 : 0.0;
+    } else if (normStyle === 'stem_safe') {
+      if (p <= bass_swap_start) { eq_low_a = 1.0; eq_low_b = 0.0; }
+      else if (p >= bass_swap_end) { eq_low_a = 0.0; eq_low_b = 1.0; }
+      else {
+        const sw = (p - bass_swap_start) / bass_swap_width;
+        eq_low_a = Math.cos(sw * (Math.PI / 2.0));
+        eq_low_b = Math.sin(sw * (Math.PI / 2.0));
+      }
+      lpf_a = Math.max(0.3, 1.0 - Math.pow(p, 1.8) * 0.7);
+      hpf_b = Math.max(0.0, Math.pow(1.0 - p, 2.0) * 0.3);
+      vocal_duck_a = Math.max(0.05, Math.cos(Math.min(1.0, p * 1.6) * (Math.PI / 2.0)));
+      vocal_duck_b = Math.min(1.0, Math.sin(Math.max(0.0, (p - 0.25) * 1.33) * (Math.PI / 2.0)));
+      rev_a = p > 0.7 ? 0.20 : 0.0;
+      del_a = 0.0;
+    } else {
+      // dj_blend and smart
+      if (p <= bass_swap_start) { eq_low_a = 1.0; eq_low_b = 0.0; }
+      else if (p >= bass_swap_end) { eq_low_a = 0.0; eq_low_b = 1.0; }
+      else {
+        const sw = (p - bass_swap_start) / bass_swap_width;
+        eq_low_a = Math.cos(sw * (Math.PI / 2.0));
+        eq_low_b = Math.sin(sw * (Math.PI / 2.0));
+      }
+      lpf_a = Math.max(0.2, 1.0 - Math.pow(p, 1.5) * 0.8);
+      hpf_b = Math.max(0.0, Math.pow(1.0 - p, 1.8) * 0.35);
+      vocal_duck_a = p > 0.3 ? 0.9 : 1.0;
+      vocal_duck_b = 0.8 + 0.2 * p;
+      rev_a = p > 0.5 ? Math.exp(-Math.pow(p - 0.85, 2) / 0.03) * 0.45 : 0.0;
+      del_a = (p >= 0.85 && p <= 0.95) ? 0.35 : 0.0;
+    }
 
     frames.push({
       step: i,
@@ -414,18 +454,18 @@ app.all('/automix/plan', (req, res) => {
         stems: {
           drums: { gain: +gain_a.toFixed(4), eq_low: +eq_low_a.toFixed(4), eq_mid: 1.0, eq_high: 1.0, lpf: +lpf_a.toFixed(4), hpf: 0.0 },
           bass: { gain: +(gain_a * eq_low_a).toFixed(4), eq_low: +eq_low_a.toFixed(4), eq_mid: 1.0, eq_high: 1.0, lpf: +lpf_a.toFixed(4), hpf: 0.0 },
-          vocals: { gain: +gain_a.toFixed(4), eq_low: 1.0, eq_mid: 1.0, eq_high: 1.0, lpf: +lpf_a.toFixed(4), hpf: 0.0 },
+          vocals: { gain: +(gain_a * vocal_duck_a).toFixed(4), eq_low: 1.0, eq_mid: +vocal_duck_a.toFixed(4), eq_high: 1.0, lpf: +lpf_a.toFixed(4), hpf: 0.0 },
           other: { gain: +gain_a.toFixed(4), eq_low: 1.0, eq_mid: 1.0, eq_high: 1.0, lpf: +lpf_a.toFixed(4), hpf: 0.0 }
         },
-        reverb_send: p > 0.5 ? +(Math.exp(-Math.pow(p - 0.85, 2) / 0.03) * 0.45).toFixed(4) : 0.0,
-        delay_send: (p >= 0.85 && p <= 0.95) ? 0.35 : 0.0
+        reverb_send: +rev_a.toFixed(4),
+        delay_send: +del_a.toFixed(4)
       },
       track_b: {
         gain: +gain_b.toFixed(4),
         stems: {
           drums: { gain: +gain_b.toFixed(4), eq_low: +eq_low_b.toFixed(4), eq_mid: 1.0, eq_high: 1.0, lpf: 1.0, hpf: +hpf_b.toFixed(4) },
           bass: { gain: +(gain_b * eq_low_b).toFixed(4), eq_low: +eq_low_b.toFixed(4), eq_mid: 1.0, eq_high: 1.0, lpf: 1.0, hpf: +hpf_b.toFixed(4) },
-          vocals: { gain: +gain_b.toFixed(4), eq_low: 1.0, eq_mid: 1.0, eq_high: 1.0, lpf: 1.0, hpf: +hpf_b.toFixed(4) },
+          vocals: { gain: +(gain_b * vocal_duck_b).toFixed(4), eq_low: 1.0, eq_mid: +vocal_duck_b.toFixed(4), eq_high: 1.0, lpf: 1.0, hpf: +hpf_b.toFixed(4) },
           other: { gain: +gain_b.toFixed(4), eq_low: 1.0, eq_mid: 1.0, eq_high: 1.0, lpf: 1.0, hpf: +hpf_b.toFixed(4) }
         },
         reverb_send: 0.05,
@@ -439,7 +479,7 @@ app.all('/automix/plan', (req, res) => {
     duration,
     bpm_a,
     bpm_b,
-    style,
+    style: normStyle,
     steps_count: frames.length,
     bass_swap_point: bass_swap_center,
     frames

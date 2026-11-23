@@ -166,6 +166,20 @@ public enum AutomixPerformanceMode: String, Codable, Hashable, Sendable, CaseIte
     }
 }
 
+/// Which Automix mixing style the listener custom-selected.
+public enum AutomixMode: String, Codable, Hashable, Sendable, CaseIterable {
+    /// AI Smart Automatic: dynamically picks the ideal transition from beat grid, BPM alignment, and vocal presence.
+    case smart = "SMART"
+    /// Neural DJ Blend: beat-aligned crossfade with bass swap handing low frequencies over at the downbeat.
+    case djBlend = "DJ_BLEND"
+    /// Neural DJ Filter: 24 dB/octave low-pass sweep on outgoing track and high-pass entry on incoming track.
+    case djFilter = "DJ_FILTER"
+    /// Neural Stem & Vocal Safe: vocal collision avoidance and stem energy protection.
+    case stemSafe = "STEM_SAFE"
+    /// Constant Power: smooth equal-power loudness-matched transition.
+    case equalPower = "EQUAL_POWER"
+}
+
 /// Ordering for the Downloads and imported-music libraries.
 public enum LocalMusicSort: String, Codable, Hashable, Sendable, CaseIterable {
     case titleAsc = "TITLE_ASC"

@@ -183,7 +183,7 @@ public struct TransitionPlan: Sendable, Equatable {
     /// highlight promises; an unanalysed pair cued at 0:00 fading equal-power is not one.
     public var isRealMix: Bool {
         transitionStyle == .djBlend || transitionStyle == .djFilter ||
-            incomingCueTime > 0 || incomingPlaybackRate != 1
+            incomingCueTime > 0 || incomingPlaybackRate != 1 || vocalOverlap > 0
     }
 
     /// The span of the outgoing track the transition occupies, as fractions of `durationSeconds`,

@@ -48,7 +48,7 @@ enum SettingsRowID: String, CaseIterable, Hashable {
     // Downloads
     case downloadQuality, downloadWifiOnly
     // Playback
-    case preferMusicOnly, loudnessNormalization, crossfade, automix, automixPerformance, skipSilence,
+    case preferMusicOnly, loudnessNormalization, crossfade, automix, automixMode, automixPerformance, skipSilence,
          spatialAudio, equalizer
     // Appearance
     case theme, reduceAnimation, reduceDynamicBlur, fullScreenCoverArt, legacyMeshGradient,
@@ -122,6 +122,7 @@ enum SettingsCatalog {
         }
         playback += [
             row(.automix, L10n.automix, "crossfade", "smart fade", "mix"),
+            row(.automixMode, L10n.automixStyle, "style", "blend", "filter", "bass swap", "stems"),
             row(.automixPerformance, L10n.automixPerformance, "cpu", "battery"),
             row(.skipSilence, L10n.skipSilence, "silence"),
             row(.spatialAudio, L10n.spatialAudio, "surround", "3d"),

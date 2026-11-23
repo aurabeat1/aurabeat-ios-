@@ -120,6 +120,11 @@ public final class AppSettings {
         didSet { write(.automixPerformanceMode, automixPerformanceMode.rawValue) }
     }
 
+    /// Custom selected Automix mixing style (smart AI, DJ blend with bass swap, DJ filter sweep, stem safe, equal power).
+    public var automixMode: AutomixMode = .smart {
+        didSet { write(.automixMode, automixMode.rawValue) }
+    }
+
     public var skipSilence: Bool = false {
         didSet { write(.skipSilence, skipSilence) }
     }
@@ -915,6 +920,7 @@ public final class AppSettings {
         crossfadeSeconds = readInt(.crossfadeSeconds, default: 0)
         smartFadeEnabled = readBool(.smartFadeEnabled, default: false)
         automixPerformanceMode = readEnum(.automixPerformanceMode, default: .balanced)
+        automixMode = readEnum(.automixMode, default: .smart)
         skipSilence = readBool(.skipSilence, default: false)
         loudnessNormalization = readBool(.loudnessNormalization, default: true)
         dolbyAtmos = readBool(.dolbyAtmos, default: true)

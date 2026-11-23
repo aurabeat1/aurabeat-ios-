@@ -47,13 +47,20 @@ final class AutomixTransitionPlanner: TransitionPlanning {
     @ObservationIgnored private var analyzerStorage: AutomixAnalysisProviding?
     /// True while nothing should be measured (a Listen Together party, Automix off).
     @ObservationIgnored private let isStopped: @MainActor () -> Bool
+    /// The listener's custom selected Automix mode.
+    @ObservationIgnored private let getAutomixMode: @MainActor () -> AutomixMode
 
     /// The pair the engine last asked about, published only when it changes.
     private(set) var pairStatus: AutomixPairStatus?
     @ObservationIgnored private var lastVerdict = ""
 
-    init(isStopped: @escaping @MainActor () -> Bool = { false }, analyzer: @escaping @MainActor () -> AutomixAnalysisProviding) {
+    init(
+        isStopped: @escaping @MainActor () -> Bool = { false },
+        mode: @escaping @MainActor () -> AutomixMode = { AppSettings.shared.automixMode },
+        analyzer: @escaping @MainActor () -> AutomixAnalysisProviding
+    ) {
         self.isStopped = isStopped
+        self.getAutomixMode = mode
         makeAnalyzer = analyzer
     }
 
@@ -83,7 +90,7 @@ final class AutomixTransitionPlanner: TransitionPlanning {
         }
         let current = analyzer.analysis(for: outgoing.videoId)
         let next = analyzer.analysis(for: incoming.videoId)
-        let plan = TransitionPlanner.plan(
+        var plan = TransitionPlanner.plan(
             analysis: current,
             nextAnalysis: next,
             currentTrack: Self.info(outgoing, durationSeconds: context.duration),
@@ -93,6 +100,8 @@ final class AutomixTransitionPlanner: TransitionPlanning {
             fadeSeconds: context.fallbackOverlap,
             mode: .smart
         )
+        let automixMode = getAutomixMode()
+        Self.applyAutomixMode(automixMode, to: &plan, duration: context.duration)
         let currentState = analyzer.state(of: outgoing.videoId)
         let nextState = analyzer.state(of: incoming.videoId)
         publish(AutomixPairStatus(
@@ -101,6 +110,60 @@ final class AutomixTransitionPlanner: TransitionPlanning {
         ))
         log(plan, from: outgoing.videoId, to: incoming.videoId, current: current, next: next)
         return Self.spec(for: plan, currentState: currentState, nextState: nextState)
+    }
+
+    /// Applies custom listener Automix preference onto the transition plan to drive real hardware DSP transitions.
+    static func applyAutomixMode(_ mode: AutomixMode, to plan: inout TransitionPlan, duration: Double) {
+        guard !plan.blocked else { return }
+        switch mode {
+        case .smart:
+            break
+        case .djBlend:
+            plan.transitionStyle = .djBlend
+            plan.bassSwap = true
+            if plan.bassSwapFraction <= 0 || plan.bassSwapFraction >= 1 {
+                plan.bassSwapFraction = 0.65
+            }
+            if plan.fadeSeconds < 2 {
+                plan.fadeSeconds = 8.0
+                plan.transitionStart = max(0, duration - plan.fadeSeconds)
+                plan.transitionEnd = duration
+            }
+            plan.reason = "custom-dj-blend"
+        case .djFilter:
+            plan.transitionStyle = .djFilter
+            if plan.filterSweep <= 0 {
+                plan.filterSweep = 0.85
+            }
+            if plan.fadeSeconds < 2 {
+                plan.fadeSeconds = 6.0
+                plan.transitionStart = max(0, duration - plan.fadeSeconds)
+                plan.transitionEnd = duration
+            }
+            plan.reason = "custom-dj-filter"
+        case .stemSafe:
+            if plan.transitionStyle == .equalPower || plan.transitionStyle == .djBlend {
+                plan.bassSwap = false
+            }
+            plan.vocalOverlap = max(plan.vocalOverlap, 0.85)
+            if plan.fadeSeconds < 2 {
+                plan.fadeSeconds = 6.0
+                plan.transitionStart = max(0, duration - plan.fadeSeconds)
+                plan.transitionEnd = duration
+            }
+            plan.reason = "custom-stem-safe"
+        case .equalPower:
+            plan.transitionStyle = .equalPower
+            plan.bassSwap = false
+            plan.filterSweep = 0
+            plan.vocalOverlap = 0
+            if plan.fadeSeconds < 1 {
+                plan.fadeSeconds = 5.0
+                plan.transitionStart = max(0, duration - plan.fadeSeconds)
+                plan.transitionEnd = duration
+            }
+            plan.reason = "custom-equal-power"
+        }
     }
 
     /// The engine's spec for an Automix plan, or nil for "no transition here" (blocked: a speech or

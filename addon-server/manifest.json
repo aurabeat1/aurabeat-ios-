@@ -29,6 +29,19 @@
         { "value": "medium", "label": "Standard Quality (AAC 256 kbps)" },
         { "value": "low", "label": "Data-Saver (AAC 128 kbps)" }
       ]
+    },
+    {
+      "key": "automix_mode",
+      "type": "select",
+      "default": "smart",
+      "label": "AutoMix Transition Style",
+      "options": [
+        { "value": "smart", "label": "Smart AI Transition (Auto Blend & Filter)" },
+        { "value": "dj_blend", "label": "Neural DJ Blend (Bass Swap Handover)" },
+        { "value": "dj_filter", "label": "Neural DJ Filter Sweep (24 dB/oct Low/High-Pass)" },
+        { "value": "stem_safe", "label": "Neural Stem & Vocal Safe (Vocal Anti-Clash)" },
+        { "value": "equal_power", "label": "Constant Power Crossfade (Flat Faders)" }
+      ]
     }
   ]
 }

@@ -186,6 +186,66 @@ enum L10n {
     static var automixPerformanceWarning: String { tr("automix_performance_warning") }
     /// Automix: stopped in listen together
     static var automixStoppedInParty: String { tr("automix_stopped_in_party") }
+    /// Automix transition style
+    static var automixStyle: String {
+        let val = tr("automix_style")
+        return val == "automix_style" ? "Automix Transition Style" : val
+    }
+    /// Select your custom neural mixing style & effects
+    static var automixStyleSubtitle: String {
+        let val = tr("automix_style_subtitle")
+        return val == "automix_style_subtitle" ? "Select your custom neural mixing style & effects" : val
+    }
+    /// AI Smart Automatic
+    static var automixStyleSmart: String {
+        let val = tr("automix_style_smart")
+        return val == "automix_style_smart" ? "AI Smart Automatic" : val
+    }
+    /// Dynamically picks the ideal mix from beat, tempo & vocal analysis
+    static var automixStyleSmartSubtitle: String {
+        let val = tr("automix_style_smart_subtitle")
+        return val == "automix_style_smart_subtitle" ? "Dynamically picks the ideal mix from beat, tempo & vocal analysis" : val
+    }
+    /// Neural DJ Blend & Bass Swap
+    static var automixStyleDJBlend: String {
+        let val = tr("automix_style_dj_blend")
+        return val == "automix_style_dj_blend" ? "Neural DJ Blend & Bass Swap" : val
+    }
+    /// Beat-matched crossfade with punchy low-frequency handover at downbeat
+    static var automixStyleDJBlendSubtitle: String {
+        let val = tr("automix_style_dj_blend_subtitle")
+        return val == "automix_style_dj_blend_subtitle" ? "Beat-matched crossfade with punchy low-frequency handover at downbeat" : val
+    }
+    /// Neural DJ Filter Sweep
+    static var automixStyleDJFilter: String {
+        let val = tr("automix_style_dj_filter")
+        return val == "automix_style_dj_filter" ? "Neural DJ Filter Sweep" : val
+    }
+    /// 24 dB/oct closing low-pass on outgoing track and high-pass entry
+    static var automixStyleDJFilterSubtitle: String {
+        let val = tr("automix_style_dj_filter_subtitle")
+        return val == "automix_style_dj_filter_subtitle" ? "24 dB/oct closing low-pass on outgoing track and high-pass entry" : val
+    }
+    /// Neural Stem & Vocal Safe
+    static var automixStyleStemSafe: String {
+        let val = tr("automix_style_stem_safe")
+        return val == "automix_style_stem_safe" ? "Neural Stem & Vocal Safe" : val
+    }
+    /// Multi-stem separation preventing vocal overlap while preserving drums
+    static var automixStyleStemSafeSubtitle: String {
+        let val = tr("automix_style_stem_safe_subtitle")
+        return val == "automix_style_stem_safe_subtitle" ? "Multi-stem separation preventing vocal overlap while preserving drums" : val
+    }
+    /// Constant-Power Crossfade
+    static var automixStyleEqualPower: String {
+        let val = tr("automix_style_equal_power")
+        return val == "automix_style_equal_power" ? "Constant-Power Crossfade" : val
+    }
+    /// Smooth equal-power fade without dips or volume drops
+    static var automixStyleEqualPowerSubtitle: String {
+        let val = tr("automix_style_equal_power_subtitle")
+        return val == "automix_style_equal_power_subtitle" ? "Smooth equal-power fade without dips or volume drops" : val
+    }
     /// AutoPlay
     static var autoplay: String { tr("autoplay") }
     /// Similar music will keep playing
