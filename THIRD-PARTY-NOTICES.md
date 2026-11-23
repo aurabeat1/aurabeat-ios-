@@ -39,7 +39,7 @@ Both models are byte-identical to the copies in AuraBeat for Android (`app/src/m
 
 | File | Model | Origin | Licence |
 |---|---|---|---|
-| `AuraBeatKit/Sources/Automix/Models/beat_this_int8.onnx` | Beat This! beat and downbeat tracker, int8 | CPJKU ([beat_this](https://github.com/CPJKU/beat_this)) | MIT for code and weights, as stated in `AutomixModelSession.swift` and `BeatTracker.swift`. Not checked against the release. |
+| `AuraBeatKit/Sources/Automix/Models/model_beat_this_final0_q8.onnx` | Beat This! beat and downbeat tracker, final0 q8 | CPJKU ([beat_this](https://github.com/CPJKU/beat_this)) | MIT for code and weights, as stated in `AutomixModelSession.swift` and `BeatTracker.swift`. Not checked against the release. |
 | `AuraBeatKit/Sources/Automix/Models/vocals_umxhq_int8.onnx` | Open-Unmix UMX-HQ "vocals" target, int8 | Inria and SigSep ([open-unmix-pytorch](https://github.com/sigsep/open-unmix-pytorch)) | MIT weights, as stated in `AutomixModelSession.swift`. The Android source says this was confirmed on the Zenodo deposit. Not checked against the deposit. |
 
 Who converted the models to int8 ONNX is not recorded in either repository.

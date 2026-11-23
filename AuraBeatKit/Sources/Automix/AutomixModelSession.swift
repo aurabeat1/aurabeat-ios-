@@ -51,14 +51,29 @@ public enum AutomixAnalysisBudget: String, Sendable, CaseIterable {
 
 /// The two models Automix ships as module resources.
 enum AutomixModel: String {
-    /// Beat This! (CPJKU, ISMIR 2024), int8. MIT code and weights.
-    case beatThis = "beat_this_int8"
+    /// Beat This! (CPJKU, ISMIR 2024), int8/q8. MIT code and weights.
+    case beatThis = "model_beat_this_final0_q8"
     /// open-unmix "vocals" target (Inria/SigSep), int8. MIT weights.
     case vocals = "vocals_umxhq_int8"
 
     /// The bundled copy, or nil if the resource is missing from the build.
     var bundledURL: URL? {
-        Bundle.module.url(forResource: rawValue, withExtension: "onnx", subdirectory: "Models")
+        let candidates: [String]
+        switch self {
+        case .beatThis:
+            candidates = ["model_beat_this_final0_q8", "beat_this_final0_q8", "beat_this_int8"]
+        case .vocals:
+            candidates = ["model_vocals_umxhq_int8", "vocals_umxhq_int8"]
+        }
+        for name in candidates {
+            if let url = Bundle.module.url(forResource: name, withExtension: "onnx", subdirectory: "Models") {
+                return url
+            }
+            if let url = Bundle.module.url(forResource: name, withExtension: "onnx") {
+                return url
+            }
+        }
+        return nil
     }
 }
 

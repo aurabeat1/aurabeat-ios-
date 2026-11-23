@@ -69,7 +69,7 @@ let extraTestDependencies: [String: [String]] = [
 
 // Resources a module ships, keyed by module name.
 let moduleResources: [String: [Resource]] = [
-    // beat_this_int8.onnx and vocals_umxhq_int8.onnx, copied from app/src/main/assets.
+    // model_beat_this_final0_q8.onnx and vocals_umxhq_int8.onnx, copied from app/src/main/assets.
     "Automix": [.copy("Models")],
 ]
 
