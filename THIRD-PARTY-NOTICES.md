@@ -39,6 +39,12 @@ A licence is given only where a licence file or a licence statement was found. W
 - Licence: MIT, as stated in `pyproject.toml` and `README.md`.
 - Used in: `automix-engine/` and integrated into `addon-server/` (`main.py`, `server.mjs`, `manifest.json`). Provides neural DJ transition generation using conditional diffusion models, stem separation (demucs), and differentiable audio effects chains (per-stem gain, 3-band EQ, low-pass filter, high-pass filter, reverb send, delay send, and delay feedback).
 
+### Sony FxNorm-automix
+
+- Project: [FxNorm-automix](https://github.com/sony/FxNorm-automix) by Sony Group Corporation (Marco A. Martínez-Ramírez et al., ISMIR 2022).
+- Licence: MIT, as stated in `fxnorm-automix/LICENSE.md`.
+- Used in: `fxnorm-automix/` and integrated into `addon-server/`. Provides deep learning automatic music mixing using effect normalization, CAFX (cross-attention effects), TDCN-LSTM mixing networks, Wave-U-Net architectures, and pre-trained weights on wet multitrack recordings (`ours_S_Lb`, `ours_S_pretrained`, `wun_S_Lb`).
+
 ## Models in this repository
 
 Both models are byte-identical to the copies in AuraBeat for Android (`app/src/main/assets/`). They are loaded by `AuraBeatKit/Sources/Automix/AutomixModelSession.swift`.

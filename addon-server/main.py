@@ -29,11 +29,16 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 
-# Path configuration including AutoMix Neural DJ Engine
+# Path configuration including AutoMix Neural DJ Engines
 BASE_DIR = Path(__file__).parent
 AUTOMIX_DIR = BASE_DIR.parent / "automix-engine"
+FXNORM_AUTOMIX_DIR = BASE_DIR.parent / "fxnorm-automix"
+SWIFT_MODELS_DIR = BASE_DIR.parent / "AuraBeatKit" / "Sources" / "Automix" / "Models"
+
 if str(AUTOMIX_DIR) not in sys.path and AUTOMIX_DIR.exists():
     sys.path.insert(0, str(AUTOMIX_DIR))
+if str(FXNORM_AUTOMIX_DIR) not in sys.path and FXNORM_AUTOMIX_DIR.exists():
+    sys.path.insert(0, str(FXNORM_AUTOMIX_DIR))
 
 from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
 from cryptography.hazmat.primitives.ciphers import Cipher, modes
@@ -646,6 +651,48 @@ INDEX_HTML = """<!DOCTYPE html>
         </div>
       </div>
     </div>
+
+    <div class="card">
+      <h2>🎛️ AutoMix Neural DJ Studio &amp; Model Downloads</h2>
+      <p style="font-size: 14px; color: var(--subtext); margin-bottom: 14px;">
+        High-fidelity AI mixing engines: <strong>Clawd AutoMix</strong> (Diffusion 4-Stem Transitions) &amp; <strong>Sony FxNorm-automix</strong> (Effect Normalization &amp; Multitrack Supernets).
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 16px;">
+        <div style="background: #0c1220; border: 1px solid var(--border); border-radius: 10px; padding: 12px;">
+          <div style="font-weight: 700; font-size: 13px; color: #60a5fa; margin-bottom: 4px;">🥁 Beat This! Final0 Q8</div>
+          <div style="font-size: 12px; color: var(--subtext); margin-bottom: 8px;">Beat &amp; Downbeat Tracker (23.1 MB)</div>
+          <a href="/automix/download/beat_this" class="btn" style="text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 12px;">⬇️ Download ONNX</a>
+        </div>
+
+        <div style="background: #0c1220; border: 1px solid var(--border); border-radius: 10px; padding: 12px;">
+          <div style="font-weight: 700; font-size: 13px; color: #a855f7; margin-bottom: 4px;">🎤 Open-Unmix Vocals Q8</div>
+          <div style="font-size: 12px; color: var(--subtext); margin-bottom: 8px;">Vocal Presence Detector (8.9 MB)</div>
+          <a href="/automix/download/vocals" class="btn" style="text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 12px;">⬇️ Download ONNX</a>
+        </div>
+
+        <div style="background: #0c1220; border: 1px solid var(--border); border-radius: 10px; padding: 12px;">
+          <div style="font-weight: 700; font-size: 13px; color: #10b981; margin-bottom: 4px;">🎚️ Sony FxNorm-automix</div>
+          <div style="font-size: 12px; color: var(--subtext); margin-bottom: 8px;">CAFX TDCN-LSTM Weights (10.6 MB)</div>
+          <a href="/automix/download/fxnorm_ours" class="btn" style="text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 12px;">⬇️ Download Model</a>
+        </div>
+
+        <div style="background: #0c1220; border: 1px solid var(--border); border-radius: 10px; padding: 12px;">
+          <div style="font-weight: 700; font-size: 13px; color: #ec4899; margin-bottom: 4px;">📱 AuraBeat iOS IPA</div>
+          <div style="font-size: 12px; color: var(--subtext); margin-bottom: 8px;">Sideload Release Build (Ad-Hoc)</div>
+          <a href="https://github.com/aurabeat1/aurabeat-ios-/releases" target="_blank" class="btn" style="text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 12px; background: #ec4899;">📦 GitHub IPA Release</a>
+        </div>
+      </div>
+
+      <div style="background: #0c1220; border: 1px solid var(--border); border-radius: 10px; padding: 12px;">
+        <div style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">⚡ Quick Automix Transition API:</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <a href="/automix/info" target="_blank" style="color: #60a5fa; font-size: 12px; text-decoration: none; background: #151d30; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);">📊 Engine Capabilities JSON</a>
+          <a href="/automix/plan?duration=15&amp;bpm_a=120&amp;bpm_b=124" target="_blank" style="color: #60a5fa; font-size: 12px; text-decoration: none; background: #151d30; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);">📈 54-Param Curves JSON</a>
+          <a href="/automix/mix?track_a=track-hires-1&amp;track_b=track-expand-1&amp;duration=15" target="_blank" style="color: #60a5fa; font-size: 12px; text-decoration: none; background: #151d30; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);">🎧 Render 15s Test Transition</a>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -821,9 +868,64 @@ def get_manifest():
 
 
 # ---------------------------------------------------------
-# AutoMix Neural DJ Transition Engine Integration
-# (https://github.com/clawd139/automix)
+# AutoMix Neural DJ & Multitrack Mixing Engines Integration
+# - Clawd AutoMix: https://github.com/clawd139/automix
+# - Sony FxNorm-automix: https://github.com/sony/FxNorm-automix
 # ---------------------------------------------------------
+
+AVAILABLE_AUTOMIX_MODELS = {
+    "beat_this": {
+        "id": "beat_this",
+        "name": "Beat This! Q8 Beat & Downbeat Tracker",
+        "filename": "model_beat_this_final0_q8.onnx",
+        "path": SWIFT_MODELS_DIR / "model_beat_this_final0_q8.onnx",
+        "size_mb": 23.1,
+        "type": "ONNX Model (Quantized Int8/Q8)",
+        "framework": "ONNX Runtime",
+        "description": "High-accuracy beat and downbeat tracking model by CPJKU for real-time BPM & beat grid alignment."
+    },
+    "vocals": {
+        "id": "vocals",
+        "name": "Open-Unmix UMX-HQ Vocals Detector",
+        "filename": "vocals_umxhq_int8.onnx",
+        "path": SWIFT_MODELS_DIR / "vocals_umxhq_int8.onnx",
+        "size_mb": 8.9,
+        "type": "ONNX Model (Quantized Int8)",
+        "framework": "ONNX Runtime",
+        "description": "Deep neural vocal presence and vocal mask tracker by Inria/SigSep for vocal clash prevention."
+    },
+    "fxnorm_ours": {
+        "id": "fxnorm_ours",
+        "name": "Sony FxNorm-automix CAFX TDCN-LSTM Model",
+        "filename": "current_model_for_mixture.params",
+        "path": FXNORM_AUTOMIX_DIR / "trainings" / "results" / "ours_S_Lb" / "current_model_for_mixture.params",
+        "size_mb": 10.6,
+        "type": "PyTorch Parameters Checkpoint",
+        "framework": "PyTorch",
+        "description": "Sony ISMIR 2022 automatic multitrack mixing model trained with Effect Normalization on wet audio."
+    },
+    "fxnorm_dump": {
+        "id": "fxnorm_dump",
+        "name": "Sony FxNorm-automix Network Dump",
+        "filename": "net_mixture.dump",
+        "path": FXNORM_AUTOMIX_DIR / "trainings" / "results" / "ours_S_Lb" / "net_mixture.dump",
+        "size_mb": 10.6,
+        "type": "Model Architecture & Weights Dump",
+        "framework": "PyTorch",
+        "description": "Full serialized network dump for instant inference with Sony FxNorm-automix."
+    },
+    "fxnorm_features": {
+        "id": "fxnorm_features",
+        "name": "MUSDB18 Average Effect Normalization Features",
+        "filename": "features_MUSDB18.npy",
+        "path": FXNORM_AUTOMIX_DIR / "trainings" / "features" / "features_MUSDB18.npy",
+        "size_mb": 0.01,
+        "type": "NumPy Feature Matrix",
+        "framework": "NumPy",
+        "description": "Pre-computed MUSDB18 multitrack effect normalization reference features."
+    }
+}
+
 
 def get_automix_capabilities() -> dict:
     has_uv = bool(shutil.which("uv"))
@@ -842,20 +944,34 @@ def get_automix_capabilities() -> dict:
         pass
 
     return {
-        "engine": "AutoMix Neural DJ Transition Generation",
-        "repository": "https://github.com/clawd139/automix",
-        "version": "2.0.0",
-        "author": "Clawd",
-        "license": "MIT",
-        "path": str(AUTOMIX_DIR),
-        "available": AUTOMIX_DIR.exists(),
+        "engine": "AutoMix & FxNorm Neural Music Mixing Suite",
+        "clawd_automix": {
+            "name": "AutoMix Neural DJ Transition Generation",
+            "repository": "https://github.com/clawd139/automix",
+            "version": "2.0.0",
+            "path": str(AUTOMIX_DIR),
+            "available": AUTOMIX_DIR.exists(),
+            "stem_names": ["drums", "bass", "vocals", "other"],
+            "stem_params": ["gain", "eq_low", "eq_mid", "eq_high", "lpf", "hpf"],
+            "global_params": ["reverb_send", "delay_send", "delay_feedback"],
+            "total_params": 54
+        },
+        "sony_fxnorm": {
+            "name": "Sony FxNorm-automix Automatic Music Mixing",
+            "repository": "https://github.com/sony/FxNorm-automix",
+            "version": "0.0.1",
+            "path": str(FXNORM_AUTOMIX_DIR),
+            "available": FXNORM_AUTOMIX_DIR.exists(),
+            "pretrained_models": ["ours_S_Lb", "ours_S_pretrained", "wun_S_Lb"],
+            "features_musdb18": (FXNORM_AUTOMIX_DIR / "trainings" / "features" / "features_MUSDB18.npy").exists()
+        },
         "torch_available": torch_available,
         "uv_available": has_uv,
         "device": device,
-        "stem_names": ["drums", "bass", "vocals", "other"],
-        "stem_params": ["gain", "eq_low", "eq_mid", "eq_high", "lpf", "hpf"],
-        "global_params": ["reverb_send", "delay_send", "delay_feedback"],
-        "total_params": 54,
+        "downloadable_models": [
+            {"id": m["id"], "name": m["name"], "filename": m["filename"], "size_mb": m["size_mb"], "url": f"/automix/download/{m['id']}"}
+            for m in AVAILABLE_AUTOMIX_MODELS.values()
+        ],
         "features": [
             "stem_separation_demucs",
             "conditional_diffusion_curves",
@@ -864,7 +980,10 @@ def get_automix_capabilities() -> dict:
             "vocal_collision_avoidance",
             "filter_sweep",
             "reverb_washout",
-            "delay_throw"
+            "delay_throw",
+            "sony_effect_normalization",
+            "sony_cafx_tdcn_lstm_mixing",
+            "sony_wave_u_net"
         ]
     }
 
@@ -1001,6 +1120,58 @@ def resolve_local_audio(track_ref: str) -> Optional[Path]:
 def automix_info():
     caps = get_automix_capabilities()
     return JSONResponse(caps, headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/automix/models")
+def list_automix_models(request: Request):
+    base_url = str(request.base_url).rstrip("/")
+    models = []
+    for k, v in AVAILABLE_AUTOMIX_MODELS.items():
+        exists = v["path"].exists()
+        models.append({
+            "id": v["id"],
+            "name": v["name"],
+            "filename": v["filename"],
+            "size_mb": v["size_mb"],
+            "type": v["type"],
+            "framework": v["framework"],
+            "description": v["description"],
+            "available": exists,
+            "download_url": f"{base_url}/automix/download/{v['id']}"
+        })
+    return JSONResponse({"models": models, "count": len(models)}, headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/automix/download")
+def automix_download_index(request: Request):
+    return list_automix_models(request)
+
+
+@app.get("/automix/download/{model_name}")
+def download_automix_model(model_name: str):
+    target = AVAILABLE_AUTOMIX_MODELS.get(model_name)
+    if not target:
+        for k, v in AVAILABLE_AUTOMIX_MODELS.items():
+            if v["filename"] == model_name or v["id"] == model_name:
+                target = v
+                break
+    if not target:
+        cand1 = SWIFT_MODELS_DIR / model_name
+        if cand1.exists():
+            return FileResponse(cand1, filename=model_name)
+        cand2 = FXNORM_AUTOMIX_DIR / "trainings" / "results" / "ours_S_Lb" / model_name
+        if cand2.exists():
+            return FileResponse(cand2, filename=model_name)
+        raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found. Visit /automix/models for available downloads.")
+
+    if not target["path"].exists():
+        raise HTTPException(status_code=404, detail=f"Model file '{target['filename']}' not found on server disk.")
+
+    return FileResponse(
+        target["path"],
+        media_type="application/octet-stream",
+        filename=target["filename"]
+    )
 
 
 @app.get("/automix/plan")

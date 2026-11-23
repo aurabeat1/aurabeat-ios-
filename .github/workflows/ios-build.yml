@@ -3,8 +3,18 @@ name: AuraBeat iOS Build & IPA Generation
 on:
   push:
     branches: [main]
+    paths:
+      - 'App/**'
+      - 'AuraBeatKit/**'
+      - 'scripts/**'
+      - '.github/workflows/ios-build.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'App/**'
+      - 'AuraBeatKit/**'
+      - 'scripts/**'
+      - '.github/workflows/ios-build.yml'
   workflow_dispatch:
 
 permissions:

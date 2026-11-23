@@ -248,18 +248,92 @@ app.get('/stream/:id', (req, res) => {
   });
 });
 
-// ── AutoMix Neural DJ Transition Endpoints (https://github.com/clawd139/automix)
+// ── AutoMix & FxNorm Neural Music Mixing Suite (Clawd & Sony)
+const SWIFT_MODELS_DIR = path.join(__dirname, '..', 'AuraBeatKit', 'Sources', 'Automix', 'Models');
+const FXNORM_DIR = path.join(__dirname, '..', 'fxnorm-automix');
+
+const AVAILABLE_AUTOMIX_MODELS = [
+  {
+    id: "beat_this",
+    name: "Beat This! Q8 Beat & Downbeat Tracker",
+    filename: "model_beat_this_final0_q8.onnx",
+    filepath: path.join(SWIFT_MODELS_DIR, "model_beat_this_final0_q8.onnx"),
+    size_mb: 23.1,
+    type: "ONNX Model (Quantized Int8/Q8)",
+    framework: "ONNX Runtime",
+    description: "High-accuracy beat and downbeat tracking model by CPJKU for real-time BPM & beat grid alignment."
+  },
+  {
+    id: "vocals",
+    name: "Open-Unmix UMX-HQ Vocals Detector",
+    filename: "vocals_umxhq_int8.onnx",
+    filepath: path.join(SWIFT_MODELS_DIR, "vocals_umxhq_int8.onnx"),
+    size_mb: 8.9,
+    type: "ONNX Model (Quantized Int8)",
+    framework: "ONNX Runtime",
+    description: "Deep neural vocal presence and vocal mask tracker by Inria/SigSep for vocal clash prevention."
+  },
+  {
+    id: "fxnorm_ours",
+    name: "Sony FxNorm-automix CAFX TDCN-LSTM Model",
+    filename: "current_model_for_mixture.params",
+    filepath: path.join(FXNORM_DIR, "trainings", "results", "ours_S_Lb", "current_model_for_mixture.params"),
+    size_mb: 10.6,
+    type: "PyTorch Parameters Checkpoint",
+    framework: "PyTorch",
+    description: "Sony ISMIR 2022 automatic multitrack mixing model trained with Effect Normalization on wet audio."
+  },
+  {
+    id: "fxnorm_dump",
+    name: "Sony FxNorm-automix Network Dump",
+    filename: "net_mixture.dump",
+    filepath: path.join(FXNORM_DIR, "trainings", "results", "ours_S_Lb", "net_mixture.dump"),
+    size_mb: 10.6,
+    type: "Model Architecture & Weights Dump",
+    framework: "PyTorch",
+    description: "Full serialized network dump for instant inference with Sony FxNorm-automix."
+  },
+  {
+    id: "fxnorm_features",
+    name: "MUSDB18 Average Effect Normalization Features",
+    filename: "features_MUSDB18.npy",
+    filepath: path.join(FXNORM_DIR, "trainings", "features", "features_MUSDB18.npy"),
+    size_mb: 0.01,
+    type: "NumPy Feature Matrix",
+    framework: "NumPy",
+    description: "Pre-computed MUSDB18 multitrack effect normalization reference features."
+  }
+];
+
 app.get('/automix/info', (req, res) => {
   res.json({
-    engine: "AutoMix Neural DJ Transition Generation",
-    repository: "https://github.com/clawd139/automix",
-    version: "2.0.0",
-    author: "Clawd",
-    license: "MIT",
-    stem_names: ["drums", "bass", "vocals", "other"],
-    stem_params: ["gain", "eq_low", "eq_mid", "eq_high", "lpf", "hpf"],
-    global_params: ["reverb_send", "delay_send", "delay_feedback"],
-    total_params: 54,
+    engine: "AutoMix & FxNorm Neural Music Mixing Suite",
+    clawd_automix: {
+      name: "AutoMix Neural DJ Transition Generation",
+      repository: "https://github.com/clawd139/automix",
+      version: "2.0.0",
+      author: "Clawd",
+      license: "MIT",
+      stem_names: ["drums", "bass", "vocals", "other"],
+      stem_params: ["gain", "eq_low", "eq_mid", "eq_high", "lpf", "hpf"],
+      global_params: ["reverb_send", "delay_send", "delay_feedback"],
+      total_params: 54
+    },
+    sony_fxnorm: {
+      name: "Sony FxNorm-automix Automatic Music Mixing",
+      repository: "https://github.com/sony/FxNorm-automix",
+      version: "0.0.1",
+      author: "Sony Group Corporation",
+      license: "MIT",
+      pretrained_models: ["ours_S_Lb", "ours_S_pretrained", "wun_S_Lb"]
+    },
+    downloadable_models: AVAILABLE_AUTOMIX_MODELS.map(m => ({
+      id: m.id,
+      name: m.name,
+      filename: m.filename,
+      size_mb: m.size_mb,
+      url: `/automix/download/${m.id}`
+    })),
     features: [
       "stem_separation_demucs",
       "conditional_diffusion_curves",
@@ -268,12 +342,34 @@ app.get('/automix/info', (req, res) => {
       "vocal_collision_avoidance",
       "filter_sweep",
       "reverb_washout",
-      "delay_throw"
+      "delay_throw",
+      "sony_effect_normalization",
+      "sony_cafx_tdcn_lstm_mixing"
     ]
   });
 });
 
 app.get('/automix/status', (req, res) => res.redirect('/automix/info'));
+
+app.get(['/automix/models', '/automix/download'], (req, res) => {
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'http';
+  const host = req.get('host') || 'localhost:3000';
+  const list = AVAILABLE_AUTOMIX_MODELS.map(m => ({
+    ...m,
+    available: fs.existsSync(m.filepath),
+    download_url: `${proto}://${host}/automix/download/${m.id}`
+  }));
+  res.json({ models: list, count: list.length });
+});
+
+app.get('/automix/download/:modelId', (req, res) => {
+  const { modelId } = req.params;
+  const match = AVAILABLE_AUTOMIX_MODELS.find(m => m.id === modelId || m.filename === modelId);
+  if (!match || !fs.existsSync(match.filepath)) {
+    return res.status(404).json({ error: "Model not found", requested: modelId });
+  }
+  res.download(match.filepath, match.filename);
+});
 
 app.all('/automix/plan', (req, res) => {
   const duration = Math.max(parseFloat(req.body?.duration || req.query.duration || 15.0), 1.0);

@@ -2101,9 +2101,11 @@ python -m uvicorn main:app --host 0.0.0.0 --port 3000 --reload
 
 ---
 
-## 11. AutoMix Neural DJ Transition Engine Integration
+## 11. AutoMix & FxNorm Neural Music Mixing Suite
 
-AuraBeat now natively bundles and integrates the **AutoMix Neural DJ Transition Generation** engine (adapted from [clawd139/automix](https://github.com/clawd139/automix)).
+AuraBeat now natively bundles and integrates two state-of-the-art neural music mixing engines:
+1. **Clawd AutoMix** ([clawd139/automix](https://github.com/clawd139/automix)): Conditional diffusion models with 4-stem differentiable DJ effect chains.
+2. **Sony FxNorm-automix** ([sony/FxNorm-automix](https://github.com/sony/FxNorm-automix)): Automatic multitrack music mixing using deep learning (CAFX TDCN-LSTM / Wave-U-Net) trained with Effect Normalization on wet multitrack audio.
 
 ### Key Features
 - **Stem-Aware Mixing**: Seamless source separation across 4 stems: `drums`, `bass`, `vocals`, `other`.
@@ -2111,16 +2113,43 @@ AuraBeat now natively bundles and integrates the **AutoMix Neural DJ Transition 
   - Per-stem: Gain, 3-band EQ (`low`, `mid`, `high`), Low-Pass Filter (`lpf`), High-Pass Filter (`hpf`).
   - Global: Reverb send, Delay send, and Delay feedback.
 - **Intelligent Transitions**: Automatic bass swap, vocal collision avoidance, filter sweeps, reverb washouts, and delay throws.
+- **Sony Effect Normalization**: Normalizes wet multitrack features using average dataset statistics (`features_MUSDB18.npy`), allowing pre-trained neural networks (`ours_S_Lb`, `ours_S_pretrained`, `wun_S_Lb`) to perform professional automatic multitrack balance.
 
 ### Addon Server API Endpoints
 - **Engine Status**: `GET /automix/info` (or `/automix/status`) - returns engine metadata, device capabilities (CUDA / Apple Silicon MPS / CPU), and supported stems/effects.
+- **Model Downloads Directory**: `GET /automix/models` - lists all downloadable neural models with file sizes and direct download URLs.
+- **Direct Model Download**: `GET /automix/download/{model_id}`:
+  - `/automix/download/beat_this` - Beat This! Final0 Q8 ONNX Beat Tracker (23.1 MB)
+  - `/automix/download/vocals` - Open-Unmix UMX-HQ Vocals Detector (8.9 MB)
+  - `/automix/download/fxnorm_ours` - Sony FxNorm CAFX TDCN-LSTM Model Weights (10.6 MB)
+  - `/automix/download/fxnorm_dump` - Sony FxNorm Full Network Dump (10.6 MB)
+  - `/automix/download/fxnorm_features` - MUSDB18 Feature Matrix (.npy)
 - **Transition Curve Planning**: `POST /automix/plan` (or `GET /automix/plan`) - computes time-varying parameter automation frames for any BPM pairing and duration.
 - **Neural DJ Mixing**: `POST /automix/mix` (or `GET /automix/mix`) - renders an audio transition between two tracks and returns signed streaming URL.
 
 ### Standalone CLI Usage
+
+#### Clawd AutoMix
 The AutoMix engine lives in `automix-engine/` and can be used directly with `uv`:
 ```bash
 cd automix-engine
 uv run automix info
 uv run automix mix track_a.mp3 track_b.mp3 -o transition.wav
 ```
+
+#### Sony FxNorm-automix
+The Sony FxNorm-automix engine lives in `fxnorm-automix/`:
+```bash
+cd fxnorm-automix
+pip install -r requirements.txt
+python -m automix.inference --help
+```
+
+---
+
+## 12. GitHub Actions IPA Build & Releases
+
+To prevent GitHub Actions from running long, unnecessary macOS builds on commits that only touch server, documentation, or Python engines, `.github/workflows/build-ipa.yml` and `ios-build.yml` are configured with path filters:
+- **Automatic Builds**: Triggered only when iOS code (`App/**`, `AuraBeatKit/**`, `scripts/**`) changes or when a git tag (`v*`) is pushed.
+- **Automated Releases**: Every completed IPA build automatically publishes to [GitHub Releases](https://github.com/aurabeat1/aurabeat-ios-/releases) under the `latest` tag so users always have a one-click direct download link for the sideloadable `.ipa`!
+- **Manual Trigger**: Can be started manually anytime from GitHub Actions via the **Run workflow** button.
