@@ -232,8 +232,4 @@ app.get('/stream/:id', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`[AuraBeat Addon Server] Running on http://localhost:${PORT}`);
-  console.log(`[AuraBeat Addon Server] Manifest available at http://localhost:${PORT}/manifest.json`);
-});
 export default app;
