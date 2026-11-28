@@ -1,17 +1,4 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.mjs",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "api/index.mjs"
-    }
-  ],
   "env": {
     "BITCHORD_AUTH_MODE": "log"
   }
