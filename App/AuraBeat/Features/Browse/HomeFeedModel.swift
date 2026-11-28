@@ -180,10 +180,10 @@ final class HomeFeedModel {
             HomeShelf(
                 title: "Featured Addon Streams",
                 items: [
-                    ShelfItem(title: "Aura of Serenity", subtitle: "FLAC 24-bit / 96 kHz • AuraBeat Orchestra", thumbnailUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500", videoId: "track-hires-1"),
-                    ShelfItem(title: "Dimensional Symphony", subtitle: "Dolby Atmos • Spatial Sounds Collective", thumbnailUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500", videoId: "track-atmos-1"),
-                    ShelfItem(title: "Acoustic Reverie", subtitle: "CD Quality FLAC • Elena Rostova", thumbnailUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500", videoId: "track-lossless-1"),
-                    ShelfItem(title: "Neon Horizon", subtitle: "320kbps AAC • Synthwave Pulse", thumbnailUrl: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500", videoId: "track-high-1")
+                    ShelfItem(title: "Aura of Serenity", subtitle: "FLAC 24-bit / 96 kHz • AuraBeat Orchestra", thumbnailUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500", videoId: "track-hires-1", browseId: nil),
+                    ShelfItem(title: "Dimensional Symphony", subtitle: "Dolby Atmos • Spatial Sounds Collective", thumbnailUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500", videoId: "track-atmos-1", browseId: nil),
+                    ShelfItem(title: "Acoustic Reverie", subtitle: "CD Quality FLAC • Elena Rostova", thumbnailUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500", videoId: "track-lossless-1", browseId: nil),
+                    ShelfItem(title: "Neon Horizon", subtitle: "320kbps AAC • Synthwave Pulse", thumbnailUrl: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500", videoId: "track-high-1", browseId: nil)
                 ],
                 subtitle: "High Fidelity & Dolby Atmos Streams"
             )
