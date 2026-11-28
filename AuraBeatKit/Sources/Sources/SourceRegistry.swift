@@ -19,7 +19,7 @@ import AuraBeatCore
 @Observable
 public final class SourceRegistry {
     public static let defaultBackgroundAddonId = "builtin-aurabeat-addon"
-    public static let defaultBackgroundAddonUrl = "https://aurabeat-ios.onrender.com"
+    public static let defaultBackgroundAddonUrl = "https://aurabeat-ios.vercel.app"
 
     /// Every configured source, enabled or not, in stored (priority) order.
     public private(set) var configs: [SourceConfig] = []
@@ -145,7 +145,7 @@ public final class SourceRegistry {
 
     /// Ensures the default high-fidelity background addon is active and prioritized.
     public func ensureDefaultBackgroundAddon() {
-        if let existingIndex = configs.firstIndex(where: { $0.id == Self.defaultBackgroundAddonId || $0.baseUrl.contains("aurabeat-ios.onrender.com") }) {
+        if let existingIndex = configs.firstIndex(where: { $0.id == Self.defaultBackgroundAddonId || $0.baseUrl.contains("aurabeat-ios.vercel.app") || $0.baseUrl.contains("aurabeat-ios.onrender.com") }) {
             var updated = configs
             var existing = updated[existingIndex]
             existing.id = Self.defaultBackgroundAddonId
