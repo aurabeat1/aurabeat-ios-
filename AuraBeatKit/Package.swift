@@ -84,7 +84,7 @@ let package = Package(
     // every other module stays dependency-free.
     dependencies: [
         .package(url: "https://github.com/amosavian/AMSMB2.git", from: "4.0.0"),
-        .package(url: "https://github.com/TypeWhisper/onnxruntime-swift-package-manager.git", exact: "1.24.2"),
+        .package(path: "../Packages/onnxruntime-swift-package-manager"),
     ],
     targets: modules.map { module in
         .target(name: module.name, dependencies: module.dependencies, resources: moduleResources[module.name])

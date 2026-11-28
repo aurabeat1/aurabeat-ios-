@@ -7,4 +7,7 @@
    <FileRef
       location = "group:AuraBeatKit">
    </FileRef>
+   <FileRef
+      location = "group:Packages/onnxruntime-swift-package-manager">
+   </FileRef>
 </Workspace>
