@@ -10,8 +10,8 @@ const PORT = process.env.PORT || 3000;
 const MEDIA_SECRET = process.env.MEDIA_SECRET || 'aurabeat-addon-secret-key-change-in-production';
 const AUTH_MODE = process.env.BITCHORD_AUTH_MODE || 'enforce'; // 'enforce' or 'log'
 
-// Read configured hostnames from env (comma-separated), fallback to localhost
-const rawHosts = process.env.BITCHORD_HOSTS || 'localhost,127.0.0.1,192.168.1.13';
+// Read configured hostnames from env (comma-separated), fallback to localhost & vercel default
+const rawHosts = process.env.BITCHORD_HOSTS || 'localhost,127.0.0.1,192.168.1.13,aurabeat-ios.vercel.app';
 const hosts = rawHosts.split(',').map(h => h.trim()).filter(Boolean);
 
 console.log(`[AuraBeat Addon] Configured hosts: ${JSON.stringify(hosts)}`);
@@ -199,8 +199,8 @@ app.get('/search', (req, res) => {
 
   console.log(`[Search] Query: "${query}", Quality preference: "${quality}", Client sub: ${req.bitchord?.sub || 'anonymous'}`);
 
-  const matched = TRACK_CATALOG.filter(t => 
-    t.title.toLowerCase().includes(query) || 
+  const matched = TRACK_CATALOG.filter(t =>
+    t.title.toLowerCase().includes(query) ||
     t.artist.toLowerCase().includes(query) ||
     t.album.toLowerCase().includes(query) ||
     !query
@@ -236,4 +236,4 @@ app.listen(PORT, () => {
   console.log(`[AuraBeat Addon Server] Running on http://localhost:${PORT}`);
   console.log(`[AuraBeat Addon Server] Manifest available at http://localhost:${PORT}/manifest.json`);
 });
-export default app; 
+export default app;

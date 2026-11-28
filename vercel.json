@@ -1,15 +1,9 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "addon-server/server.mjs",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "addon-server/server.mjs"
+      "source": "/(.*)",
+      "destination": "/api"
     }
   ],
   "env": {
