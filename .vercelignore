@@ -1,0 +1,11 @@
+automix-engine/
+fxnorm-automix/
+App/
+AuraBeatKit/
+AuraBeat.xcodeproj/
+AuraBeat.xcworkspace/
+Packages/
+scratch/
+scripts/
+docs/
+LICENSES/
