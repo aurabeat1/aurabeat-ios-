@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: aurabeat-addon-node
+    env: node
+    rootDir: addon-server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: BITCHORD_HOSTS
+        sync: false # User must set this in the Render dashboard
+      - key: BITCHORD_AUTH_MODE
+        value: "log"
+      - key: MEDIA_SECRET
+        generateValue: true
+
+  - type: web
+    name: aurabeat-addon-python
+    env: python
+    rootDir: addon-server
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: BITCHORD_HOSTS
+        sync: false # User must set this in the Render dashboard
+      - key: BITCHORD_AUTH_MODE
+        value: "log"
+      - key: MEDIA_SECRET
+        generateValue: true
